@@ -28,6 +28,8 @@ Each `RssFeeds` element can optionally override the default Channel/Bot Name/Bot
 
 Currently `FeedType` accepts the values `RedditPost` and `RedditInbox`(The ones I personally need so far!), or you can leave it blank for a generic feed. 
 
+`LastProcessedItem` is automatically added and saved once the bot has looped through all of it's RSS feeds. 
+
 Example Config and screenshot of output:
 
 ```JSON
