@@ -11,9 +11,12 @@ using ServiceStack.Text;
 
 namespace MattermostRSS
 {
+    /// <summary>
+    /// Attribution: Adapted from Slack client written by @jogleasonjr found here: https://gist.github.com/jogleasonjr/7121367
+    /// </summary>
     public class MattermostClient
     {
-        private const string VALID_HOST = "mattermost.pi-hole.net";
+        //private const string VALID_HOST = "mattermost.";
         private const string POST_SUCCESS = "ok";
         private readonly RestClient _restClient;
         private readonly Uri _webhookUri;
@@ -21,10 +24,10 @@ namespace MattermostRSS
         public MattermostClient(string webhookUrl, int timeoutSeconds = 100)
         {
             if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out _webhookUri))
-                throw new ArgumentException("Please enter a valid Slack webhook url");
+                throw new ArgumentException("Please enter a valid Mattermost webhook url");
 
-            if (_webhookUri.Host != VALID_HOST)
-                throw new ArgumentException("Please enter a valid Slack webhook url");
+            //if (_webhookUri.Host != VALID_HOST)
+            //    throw new ArgumentException("Please enter a valid Mattermost webhook url");
             //var baseUrl = _webhookUri.GetLeftPart(UriPartial.Authority);
             var baseUrl = _webhookUri.GetComponents(UriComponents.Scheme | UriComponents.StrongAuthority,
                 UriFormat.Unescaped);
