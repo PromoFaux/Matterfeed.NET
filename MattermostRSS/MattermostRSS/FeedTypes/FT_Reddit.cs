@@ -2,53 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using CodeKoenig.SyndicationToolbox;
-//using Html2Markdown;
+using Html2Markdown;
 using HtmlAgilityPack;
-using ReverseMarkdown;
 
 
 namespace MattermostRSS
 {
-    public class RssToMattermostMessage : MattermostMessage
-    {
-        public DateTime PublishDate;
-    }
-
-    /// <summary>
-    /// Generic class to format RSS Feed items to Mattermost
-    /// </summary>
-    public class Generic : RssToMattermostMessage
-    {
-        public Generic(FeedArticle fa, string preText)
-        {
-            var converter = new Converter();
-            var content = converter.Convert(fa.Content);
-
-            Attachments = new List<MattermostAttachment>
-            {
-                new MattermostAttachment
-                {
-                    Pretext = preText,
-                    Title = fa.Title,
-                    TitleLink = fa.WebUri,
-                    Text = content,
-                    AuthorName = fa.Author
-                }
-            };
-
-            PublishDate = fa.Published;
-        }
-    }
-
-
-    //Define Specific types of RSS Feed below this line
-
     /// <summary>
     ///  A class for formatting Reddit Posts to Mattermost
     /// </summary>
     public class RedditPost : RssToMattermostMessage
     {
-        public RedditPost(FeedArticle fa,string preText)
+        public RedditPost(FeedArticle fa, string preText)
         {
             var author = fa.Author;
             var authorUrl = $"https://reddit.com{author}";
@@ -97,6 +62,7 @@ namespace MattermostRSS
                 new MattermostAttachment
                 {
                     Pretext = subReddit == "" ? $"{preText}" : $"There is a new post in {subReddit}", //pretext overridden if we know the subreddit it's coming from
+                    Fallback = subReddit == "" ? $"{preText}" : $"There is a new post in {subReddit}",
                     Title = title,
                     TitleLink = titleUrl,
                     Text = $"{content}",
@@ -114,7 +80,7 @@ namespace MattermostRSS
     /// </summary>
     public class RedditInbox : RssToMattermostMessage
     {
-        public RedditInbox(FeedArticle fa,string preText)
+        public RedditInbox(FeedArticle fa, string preText)
         {
             var resultat = new HtmlDocument();
             resultat.LoadHtml(fa.Content);
@@ -131,7 +97,7 @@ namespace MattermostRSS
             var converter = new Converter();
             var comment = converter.Convert(pElements.Aggregate("", (current, p) => current + $"{p.InnerHtml}\n").Replace("\"/u/", "\"https://reddit.com/u/")
                 .Replace("\"/r/", "\"https://reddit.com/r/"));
-          
+
             var commentUrl = fa.WebUri;
 
             PublishDate = fa.Published;
@@ -143,12 +109,13 @@ namespace MattermostRSS
                     Pretext = $"{preText}",
                     Title = title,
                     TitleLink = commentUrl,
-                    Text = $"{comment}",
+                    Text = $"{comment}" ,
                     AuthorName = author,
                     AuthorLink = authorUrl
                 }
             };
+
+            //Text = $"#{title.Replace(' ', '-')}";
         }
     }
-
 }

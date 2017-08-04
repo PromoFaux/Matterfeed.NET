@@ -33,13 +33,17 @@ namespace MattermostRSS
                         ProcessRssFeeds(feed);
                     }
                     GC.Collect();
+
+#if RELEASE
                     Config.Save(ConfigPath);
+#endif
+
                     Thread.Sleep(Config.BotCheckIntervalMs);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-                    //throw;
+                    throw;
                 }
 
             }
@@ -51,7 +55,7 @@ namespace MattermostRSS
                 using (var file = File.OpenText(ConfigPath))
                 {
                     var serializer = new JsonSerializer();
-                    Config = (Config) serializer.Deserialize(file, typeof(Config));
+                    Config = (Config)serializer.Deserialize(file, typeof(Config));
                 }
             else
             {
@@ -73,28 +77,32 @@ namespace MattermostRSS
             IEnumerable<FeedArticle> results = feed.Articles.Where(x => x.Published > rssFeed.LastProcessedItem).OrderBy(x => x.Published);
 
             if (!results.Any()) return;
-           
+
             var rssItems = new List<RssToMattermostMessage>();
+
+            //TODO: There is probably a much better way of doing this
             switch (rssFeed.FeedType)
             {
                 case "RedditPost":
-                    rssItems.AddRange(results.Select(fa => new RedditPost(fa,rssFeed.FeedPretext)));
+                    rssItems.AddRange(results.Select(fa => new RedditPost(fa, rssFeed.FeedPretext)));
                     break;
                 case "RedditInbox":
                     rssItems.AddRange(results.Select(fa => new RedditInbox(fa, rssFeed.FeedPretext)));
                     break;
-                default:
-                    rssItems.AddRange(results.Select(fa => new Generic(fa,rssFeed.FeedPretext)));
+                default://Use Generic Feed
+                    rssItems.AddRange(results.Select(fa => new Generic(fa, rssFeed.FeedPretext)));
                     break;
             }
 
             foreach (var item in rssItems)
             {
+              
+
                 item.Channel = rssFeed.BotChannelOverride == ""
                     ? Config.BotChannelDefault
                     : rssFeed.BotChannelOverride;
 
-                item.Username = rssFeed.BotNameOverride == "" 
+                item.Username = rssFeed.BotNameOverride == ""
                     ? Config.BotNameDefault
                     : rssFeed.BotNameOverride;
 
@@ -106,8 +114,6 @@ namespace MattermostRSS
                 {
                     //Message was posted to MM successfully, update the date of the last processed entry.
                     rssFeed.LastProcessedItem = item.PublishDate;
-                    //TODO: Save LastProcessedItemToFile
-                    
                 }
                 else
                 {
