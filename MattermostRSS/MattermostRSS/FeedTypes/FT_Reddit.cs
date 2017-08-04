@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using CodeKoenig.SyndicationToolbox;
 using Html2Markdown;
 using HtmlAgilityPack;
@@ -72,6 +73,8 @@ namespace MattermostRSS
             };
 
             PublishDate = fa.Published;
+            title = Regex.Replace(title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "");
+            Text = $"#{title}";
         }
     }
 
@@ -88,9 +91,8 @@ namespace MattermostRSS
             var author = fa.Author;
             var authorUrl = $"https://reddit.com{author}";
 
-            var sent = fa.Title.IndexOf("sent", StringComparison.Ordinal);
             var colon = fa.Title.IndexOf(':');
-            var title = $"Message {fa.Title.Substring(sent, colon - sent)}";
+            var title = $"{fa.Title.Substring(colon +2, fa.Title.Length - colon -2)}";
 
             var pElements = resultat.DocumentNode.Descendants().Where(x => x.Name == "p").ToList();
 
@@ -114,8 +116,8 @@ namespace MattermostRSS
                     AuthorLink = authorUrl
                 }
             };
-
-            //Text = $"#{title.Replace(' ', '-')}";
+            title = Regex.Replace(title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "");
+            Text = $"#{title}";
         }
     }
 }
