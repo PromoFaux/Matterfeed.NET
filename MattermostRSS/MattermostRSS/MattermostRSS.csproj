@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="CodeKoenig.SyndicationToolbox" Version="5.0.2-beta" />
     <PackageReference Include="Html2Markdown" Version="3.0.0.223" />
+    <PackageReference Include="Matterhook.NET" Version="1.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="RestSharp.NetCore" Version="105.2.4-rc4-24214-01" />
     <PackageReference Include="ServiceStack.Text.Core" Version="1.0.43" />

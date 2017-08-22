@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using CodeKoenig.SyndicationToolbox;
 using Html2Markdown;
 using HtmlAgilityPack;
+using Matterhook.NET;
 
 
 namespace MattermostRSS

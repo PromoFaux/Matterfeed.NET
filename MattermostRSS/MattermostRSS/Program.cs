@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using CodeKoenig.SyndicationToolbox;
 using Newtonsoft.Json;
+using Matterhook.NET;
 
 namespace MattermostRSS
 {
@@ -110,15 +112,9 @@ namespace MattermostRSS
                     ? new Uri(Config.BotImageDefault)
                     : new Uri(rssFeed.BotImageOverride);
 
-                if (PostToMattermost(item))
-                {
-                    //Message was posted to MM successfully, update the date of the last processed entry.
-                    rssFeed.LastProcessedItem = item.PublishDate;
-                }
-                else
-                {
-                    Console.WriteLine($"{DateTime.Now} - Couldn't post to mattermost!");
-                }
+                PostToMattermost(item);
+                rssFeed.LastProcessedItem = item.PublishDate;
+                
             }
 
 
@@ -161,10 +157,10 @@ namespace MattermostRSS
             PostToMattermost(m);
         }
 
-        public static bool PostToMattermost(MattermostMessage message)
+        public static void PostToMattermost(MattermostMessage message)
         {
-            var mc = new MattermostClient(Config.MattermostWebhookUrl);
-            return mc.Post(message);
+            var mc = new MatterhookClient(Config.MattermostWebhookUrl);
+            Task.WaitAll(mc.PostAsync(message));
         }
     }
 }
