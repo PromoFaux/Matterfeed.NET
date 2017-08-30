@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.16
+VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MattermostRSS", "MattermostRSS\MattermostRSS.csproj", "{61703C09-F389-43AA-8492-9D49C10A3EEF}"
 EndProject
@@ -11,6 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "config", "config", "{ED885C
 	ProjectSection(SolutionItems) = preProject
 		config\secrets.json = config\secrets.json
 		config\secrets.json.sample = config\secrets.json.sample
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FD0F0D86-1478-4EE3-9B07-3A0019F9D531}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject
 Global
@@ -30,5 +35,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F84C861-7C28-41B5-9E3E-4204BA33AF59}
 	EndGlobalSection
 EndGlobal
