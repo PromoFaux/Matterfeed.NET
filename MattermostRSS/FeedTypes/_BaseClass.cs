@@ -4,7 +4,7 @@ using System.Linq;
 using CodeKoenig.SyndicationToolbox;
 using Html2Markdown;
 using Matterhook.NET;
-
+using Matterhook.NET.MatterhookClient;
 
 
 namespace MattermostRSS
@@ -30,7 +30,7 @@ namespace MattermostRSS
                 {
                     Pretext = preText,
                     Title = converter.Convert(fa.Title),
-                    TitleLink = fa.WebUri,
+                    TitleLink = new Uri(fa.WebUri),
                     Text = converter.Convert(fa.Content),
                     AuthorName = fa.Author
                 }

@@ -9,7 +9,7 @@ using System.Xml;
 using System.Xml.Linq;
 using CodeKoenig.SyndicationToolbox;
 using Newtonsoft.Json;
-using Matterhook.NET;
+using Matterhook.NET.MatterhookClient;
 
 namespace MattermostRSS
 {

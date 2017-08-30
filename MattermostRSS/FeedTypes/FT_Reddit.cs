@@ -6,6 +6,7 @@ using CodeKoenig.SyndicationToolbox;
 using Html2Markdown;
 using HtmlAgilityPack;
 using Matterhook.NET;
+using Matterhook.NET.MatterhookClient;
 
 
 namespace MattermostRSS
@@ -66,10 +67,10 @@ namespace MattermostRSS
                     Pretext = subReddit == "" ? $"{preText}" : $"There is a new post in {subReddit}", //pretext overridden if we know the subreddit it's coming from
                     Fallback = subReddit == "" ? $"{preText}" : $"There is a new post in {subReddit}",
                     Title = title,
-                    TitleLink = titleUrl,
+                    TitleLink = new Uri(titleUrl),
                     Text = $"{content}",
                     AuthorName = author,
-                    AuthorLink = authorUrl
+                    AuthorLink = new Uri(authorUrl)
                 }
             };
 
@@ -111,10 +112,10 @@ namespace MattermostRSS
                 {
                     Pretext = $"{preText}",
                     Title = title,
-                    TitleLink = commentUrl,
+                    TitleLink = new Uri(commentUrl),
                     Text = $"{comment}" ,
                     AuthorName = author,
-                    AuthorLink = authorUrl
+                    AuthorLink = new Uri(authorUrl)
                 }
             };
             title = Regex.Replace(title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "");
