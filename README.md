@@ -3,8 +3,19 @@ Parse RSS Feeds and post them to your Mattermost server!
 
 This is a simple bot, mainly written to improve my .NET Core and Docker experience, and to replace our reliance on IFTTT over at [Pi-hole](https://github.com/pi-hole/), open sourced because it may be useful to others.
 
-## Deployment
+[![Docker Build Status](https://img.shields.io/docker/build/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/builds/) [![Docker Stars](https://img.shields.io/docker/stars/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) 
 
+## Deployment
+Recommended - Use pre-built container:
+- Create a directory to store the bot's config file, e.g `/opt/bot/MattermostRSS` (`${YOUR_DIRECTORY}`)
+- Create the config file in `${YOUR_DIRECTORY}`. See [Example Config file](https://github.com/PromoFaux/MattermostRSS/blob/master/config/secrets.json.sample) for details, or read below.
+- `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ -e PUID=${USER} -e PGID=${GROUP} --name MattermostRSS promofaux/mattermostrss`
+
+Make sure the config directory is owned by `${user}` and `${group}` so that the bot can read and write to the config file.
+
+----
+
+Alternative - build the container yourself:
 - Clone the repo to your machine (known from this point on as `${RepoDir}`)
 - Create the config file in: `${RepoDir}/MattermostRSS/config/` (Here you will find a `secrets.json.sample` to give you the framework of the file - More details below)
 - Once the config file is created, start the bot:
