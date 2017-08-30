@@ -10,4 +10,4 @@ RUN dotnet publish MattermostRSS.sln -c Release -o /publish
 FROM microsoft/dotnet:1.1-runtime
 WORKDIR /app
 COPY --from=builder /publish .
-ENTRYPOINT ["dotnet", "Matterhook.NET.dll"]
+ENTRYPOINT ["dotnet", "MattermostRSS.dll"]
