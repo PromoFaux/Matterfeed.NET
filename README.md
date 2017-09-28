@@ -9,9 +9,9 @@ This is a simple bot, mainly written to improve my .NET Core and Docker experien
 Recommended - Use pre-built container:
 - Create a directory to store the bot's config file, e.g `/opt/bot/MattermostRSS` (`${YOUR_DIRECTORY}`)
 - Create the config file in `${YOUR_DIRECTORY}`. See [Example Config file](https://github.com/PromoFaux/MattermostRSS/blob/master/config/secrets.json.sample) for details, or read below.
-- `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ -e PUID=${USER} -e PGID=${GROUP} --name MattermostRSS promofaux/mattermostrss`
+- `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ --name MattermostRSS promofaux/mattermostrss`
 
-Make sure the config directory is owned by `${user}` and `${group}` so that the bot can read and write to the config file.
+Make sure that Docker has permission to read and write to the config directory so that it can write changes to `secrets.json`
 
 ----
 
