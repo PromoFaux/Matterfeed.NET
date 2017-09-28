@@ -23,7 +23,7 @@ namespace MattermostRSS
             // serialize JSON directly to a file
             using (var file = File.CreateText(path))
             {
-                var serializer = new JsonSerializer();
+                var serializer = new JsonSerializer {Formatting = Formatting.Indented};
                 serializer.Serialize(file, this);
             }
         }
