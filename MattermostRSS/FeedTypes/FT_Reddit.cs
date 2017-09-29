@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CodeKoenig.SyndicationToolbox;
-using Html2Markdown;
 using HtmlAgilityPack;
 using Matterhook.NET;
 using Matterhook.NET.MatterhookClient;
+using ReverseMarkdown;
 
 
 namespace MattermostRSS

@@ -36,9 +36,7 @@ namespace MattermostRSS
                     }
                     GC.Collect();
 
-#if RELEASE
                     Config.Save(ConfigPath);
-#endif
 
                     Thread.Sleep(Config.BotCheckIntervalMs);
                 }

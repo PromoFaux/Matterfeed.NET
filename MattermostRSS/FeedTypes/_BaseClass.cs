@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using CodeKoenig.SyndicationToolbox;
-using Html2Markdown;
 using Matterhook.NET;
 using Matterhook.NET.MatterhookClient;
+using ReverseMarkdown;
 
 
 namespace MattermostRSS
