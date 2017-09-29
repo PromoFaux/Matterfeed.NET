@@ -78,6 +78,7 @@ namespace MattermostRSS
 
             if (!results.Any()) return;
 
+            
             var rssItems = new List<RssToMattermostMessage>();
 
             //TODO: There is probably a much better way of doing this
@@ -96,7 +97,6 @@ namespace MattermostRSS
 
             foreach (var item in rssItems)
             {
-              
 
                 item.Channel = rssFeed.BotChannelOverride == ""
                     ? Config.BotChannelDefault
@@ -109,6 +109,14 @@ namespace MattermostRSS
                 item.IconUrl = rssFeed.BotImageOverride == ""
                     ? new Uri(Config.BotImageDefault)
                     : new Uri(rssFeed.BotImageOverride);
+
+                if (!rssFeed.IncludeContent)
+                {
+                    foreach (var att in item.Attachments)
+                    {
+                        att.Text = "";
+                    }
+                }
 
                 PostToMattermost(item);
                 rssFeed.LastProcessedItem = item.PublishDate;
@@ -134,10 +142,7 @@ namespace MattermostRSS
             catch (XmlException e)
             {
                 Console.WriteLine(e.Message);
-                //PostStringToMattermost(e.ToString());
-                //PostStringToMattermost("@promofaux, i've fallen over!");
                 return null;
-                //throw;
             }
 
         }
