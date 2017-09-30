@@ -41,7 +41,7 @@ namespace MattermostRSS
         public bool IncludeContent { get; set; } = true;
 
         public string FeedType { get; set; } = "";
-        public DateTime LastProcessedItem { get; set; } = new DateTime();
+        public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
 

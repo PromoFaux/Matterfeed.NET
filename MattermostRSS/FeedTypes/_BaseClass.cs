@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CodeKoenig.SyndicationToolbox;
+using CodeHollow.FeedReader;
+using Html2Markdown;
+//using CodeKoenig.SyndicationToolbox;
 using Matterhook.NET;
 using Matterhook.NET.MatterhookClient;
-using ReverseMarkdown;
+//using ReverseMarkdown;
 
 
 namespace MattermostRSS
@@ -12,7 +14,7 @@ namespace MattermostRSS
 
     public class RssToMattermostMessage : MattermostMessage
     {
-        public DateTime PublishDate;
+        public FeedItem FeedItem;
     }
 
     /// <summary>
@@ -20,23 +22,24 @@ namespace MattermostRSS
     /// </summary>
     public class Generic : RssToMattermostMessage
     {
-        public Generic(FeedArticle fa, string preText)
+        public Generic(FeedItem fi, string preText)
         {
             var converter = new Converter();
+
+            FeedItem = fi;
 
             Attachments = new List<MattermostAttachment>
             {
                 new MattermostAttachment
                 {
                     Pretext = preText,
-                    Title = converter.Convert(fa.Title),
-                    TitleLink = new Uri(fa.WebUri),
-                    Text = converter.Convert(fa.Content),
-                    AuthorName = fa.Author
+                    Title = converter.Convert(fi.Title),
+                    TitleLink = new Uri(fi.Link),
+                    Text = converter.Convert(fi.Description),
+                    AuthorName = fi.Author
                 }
             };
-
-            PublishDate = fa.Published;
+          
         }
     }
 

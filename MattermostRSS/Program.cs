@@ -7,9 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using CodeKoenig.SyndicationToolbox;
+using CodeHollow.FeedReader;
+//using CodeKoenig.SyndicationToolbox;
 using Newtonsoft.Json;
 using Matterhook.NET.MatterhookClient;
+//using Feed = CodeKoenig.SyndicationToolbox.Feed;
 
 namespace MattermostRSS
 {
@@ -64,9 +66,10 @@ namespace MattermostRSS
             }
         }
 
-        private static void ProcessRssFeeds(RssFeed rssFeed)
+        private static void  ProcessRssFeeds(RssFeed rssFeed)
         {
-            var feed = GetRssFeed(rssFeed.Url);
+            //Below method is obsolete. TODO: Update to use ReadAsync (quickfix for now)
+            var feed = FeedReader.Read(rssFeed.Url);
 
             if (feed == null)
             {
@@ -74,14 +77,17 @@ namespace MattermostRSS
                 return;
             }
 
-            IEnumerable<FeedArticle> results = feed.Articles.Where(x => x.Published > rssFeed.LastProcessedItem).OrderBy(x => x.Published);
+            IEnumerable<FeedItem> results = feed.Items.Where(x => x.PublishingDate > rssFeed.LastProcessedItem)
+                .OrderBy(x => x.PublishingDate);
+
+            //IEnumerable<FeedArticle> results = feed.Articles.Where(x => x.Published > rssFeed.LastProcessedItem).OrderBy(x => x.Published);
 
             if (!results.Any()) return;
 
-            
+
             var rssItems = new List<RssToMattermostMessage>();
 
-            //TODO: There is probably a much better way of doing this
+            ////TODO: There is probably a much better way of doing this
             switch (rssFeed.FeedType)
             {
                 case "RedditPost":
@@ -119,8 +125,8 @@ namespace MattermostRSS
                 }
 
                 PostToMattermost(item);
-                rssFeed.LastProcessedItem = item.PublishDate;
-                
+                rssFeed.LastProcessedItem = item.FeedItem.PublishingDate;
+
             }
 
 
@@ -128,16 +134,21 @@ namespace MattermostRSS
 
         }
 
-        public static Feed GetRssFeed(string url)
+        public static async Task<Feed> GetRssFeed(string url)
         {
             try
             {
-                var httpClient = new HttpClient();
-                var result = httpClient.GetAsync(url).Result;
-                var stream = result.Content.ReadAsStreamAsync().Result;
-                var itemXml = XElement.Load(stream);
-                var feedParser = FeedParser.Create(itemXml.ToString());
-                return feedParser.Parse();
+                var feed = await FeedReader.ReadAsync(url);
+            
+
+                //var httpClient = new HttpClient();
+                //var result = httpClient.GetAsync(url).Result;
+                //var stream = result.Content.ReadAsStreamAsync().Result;
+                //var itemXml = XElement.Load(stream);
+                //var feedParser = FeedParser.Create(itemXml.ToString());
+
+                //return feedParser.Parse();
+                return null;
             }
             catch (XmlException e)
             {

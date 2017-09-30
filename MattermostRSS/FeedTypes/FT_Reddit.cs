@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using CodeKoenig.SyndicationToolbox;
-using HtmlAgilityPack;
-using Matterhook.NET;
+using CodeHollow.FeedReader;
+using Html2Markdown;
 using Matterhook.NET.MatterhookClient;
-using ReverseMarkdown;
+//using ReverseMarkdown;
+using HtmlAgilityPack;
 
 
 namespace MattermostRSS
@@ -16,17 +16,18 @@ namespace MattermostRSS
     /// </summary>
     public class RedditPost : RssToMattermostMessage
     {
-        public RedditPost(FeedArticle fa, string preText)
+        public RedditPost(FeedItem fi, string preText)
         {
-            var author = fa.Author;
+            FeedItem = fi;
+            var author = fi.Author;
             var authorUrl = $"https://reddit.com{author}";
-            var title = fa.Title;
-            var titleUrl = fa.WebUri;
+            var title = fi.Title;
+            var titleUrl = fi.Link;
             string content;
-            var subReddit = fa.Categories.Count > 0 ? fa.Categories[0].Label : "";
+            var subReddit = "";// fi.Categories.Count > 0 ? fi.Categories: "";
 
             var resultat = new HtmlDocument();
-            resultat.LoadHtml(fa.Content);
+            resultat.LoadHtml(fi.Content);
 
             //Check to see if it is a self post or a link post
             var selfPost = resultat.DocumentNode.Descendants("div")
@@ -73,8 +74,7 @@ namespace MattermostRSS
                     AuthorLink = new Uri(authorUrl)
                 }
             };
-
-            PublishDate = fa.Published;
+            
             title = Regex.Replace(title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "");
             Text = $"#{title}";
         }
@@ -85,16 +85,18 @@ namespace MattermostRSS
     /// </summary>
     public class RedditInbox : RssToMattermostMessage
     {
-        public RedditInbox(FeedArticle fa, string preText)
+        public RedditInbox(FeedItem fi, string preText)
         {
             var resultat = new HtmlDocument();
-            resultat.LoadHtml(fa.Content);
+            resultat.LoadHtml(fi.Content);
 
-            var author = fa.Author;
+            FeedItem = fi;
+
+            var author = fi.Author;
             var authorUrl = $"https://reddit.com{author}";
 
-            var colon = fa.Title.IndexOf(':');
-            var title = $"{fa.Title.Substring(colon +2, fa.Title.Length - colon -2)}";
+            var colon = fi.Title.IndexOf(':');
+            var title = $"{fi.Title.Substring(colon + 2, fi.Title.Length - colon - 2)}";
 
             var pElements = resultat.DocumentNode.Descendants().Where(x => x.Name == "p").ToList();
 
@@ -102,9 +104,7 @@ namespace MattermostRSS
             var comment = converter.Convert(pElements.Aggregate("", (current, p) => current + $"{p.InnerHtml}\n").Replace("\"/u/", "\"https://reddit.com/u/")
                 .Replace("\"/r/", "\"https://reddit.com/r/"));
 
-            var commentUrl = fa.WebUri;
-
-            PublishDate = fa.Published;
+            var commentUrl = fi.Link;
 
             Attachments = new List<MattermostAttachment>
             {
