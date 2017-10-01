@@ -29,9 +29,9 @@ namespace MattermostRSS
                 new MattermostAttachment
                 {
                     Pretext = preText,
-                    Title = converter.Convert(fa.Title),
+                    Title = converter.Convert(fa.Title ?? ""),
                     TitleLink = new Uri(fa.WebUri),
-                    Text = converter.Convert(fa.Content),
+                    Text = converter.Convert(fa.Content ?? ""),
                     AuthorName = fa.Author
                 }
             };
