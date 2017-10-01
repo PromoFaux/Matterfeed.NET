@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using CodeKoenig.SyndicationToolbox;
-using Matterhook.NET;
 using Matterhook.NET.MatterhookClient;
 using ReverseMarkdown;
 

@@ -36,7 +36,7 @@ namespace MattermostRSS
                     }
                     GC.Collect();
 
-                    Config.Save(ConfigPath);
+                    //Config.Save(ConfigPath);
 
                     Thread.Sleep(Config.BotCheckIntervalMs);
                 }
@@ -120,7 +120,8 @@ namespace MattermostRSS
 
                 PostToMattermost(item);
                 rssFeed.LastProcessedItem = item.PublishDate;
-                
+                Config.Save(ConfigPath);
+
             }
 
 
