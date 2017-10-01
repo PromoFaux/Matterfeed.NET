@@ -140,9 +140,10 @@ namespace MattermostRSS
                 var feedParser = FeedParser.Create(itemXml.ToString());
                 return feedParser.Parse();
             }
-            catch (XmlException e)
+            catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                //Problem getting the feed.
+                Console.WriteLine($"Problem retrieving feed\n Exception Message: {e.Message}");
                 return null;
             }
 
