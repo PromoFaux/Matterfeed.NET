@@ -2,16 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
 using CodeHollow.FeedReader;
-//using CodeKoenig.SyndicationToolbox;
+using CodeHollow.FeedReader.Feeds;
+using CodeHollow.FeedReader.Feeds.Itunes;
 using Newtonsoft.Json;
 using Matterhook.NET.MatterhookClient;
-//using Feed = CodeKoenig.SyndicationToolbox.Feed;
 
 namespace MattermostRSS
 {
@@ -34,7 +31,8 @@ namespace MattermostRSS
                 {
                     foreach (var feed in Config.RssFeeds)
                     {
-                        ProcessRssFeeds(feed);
+                        Task.WaitAll(ProcessFeeds(feed));
+                        
                     }
                     GC.Collect();
 
@@ -45,7 +43,7 @@ namespace MattermostRSS
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-                    
+
                 }
 
             }
@@ -66,10 +64,61 @@ namespace MattermostRSS
             }
         }
 
-        private static void  ProcessRssFeeds(RssFeed rssFeed)
+        private static async Task ProcessFeeds(RssFeed rssFeed)
         {
+
+
+            switch (rssFeed.FeedType)
+            {
+                case "RSS":
+                    break;
+                case "JSON":
+                    break;
+                case null:
+                    Console.WriteLine("Feed Type not set");
+                    break;
+                default :
+                    Console.WriteLine("Feed Type not set");
+                    break;
+            }
             //Below method is obsolete. TODO: Update to use ReadAsync (quickfix for now)
-            var feed = FeedReader.Read(rssFeed.Url);
+            Console.WriteLine("");
+            var feed = await FeedReader.ReadAsync(rssFeed.Url);
+            Console.WriteLine("Feed Title: " + feed.Title);
+            //var test1 = new List<AtomFeedItem>();
+
+            switch (feed.Type)
+            {
+                case FeedType.Atom:
+                    Console.WriteLine("FeedType: Atom");
+                    ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
+                    break;
+                case FeedType.Rss:
+                    Console.WriteLine("FeedType: RSS");
+                    
+                    ProcessRssFeed(feed.SpecificFeed);
+                    break;
+                case FeedType.Rss_2_0:
+                    Console.WriteLine("FeedType: RSS 2.0");
+                    ProcessRss20Feed((Rss20Feed)feed.SpecificFeed);
+                    break;
+                case FeedType.Rss_0_91:
+                    Console.WriteLine("FeedType: RSS 0.91");
+                    break;
+                case FeedType.Rss_0_92:
+                    Console.WriteLine("FeedType: RSS 0.92");
+                    break;
+                case FeedType.Rss_1_0:
+                    Console.WriteLine("FeedType: RSS 1.0");
+                    break;
+                case FeedType.Unknown:
+                    Console.WriteLine("FeedType: Unknown");
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+
 
             if (feed == null)
             {
@@ -77,69 +126,122 @@ namespace MattermostRSS
                 return;
             }
 
-            IEnumerable<FeedItem> results = feed.Items.Where(x => x.PublishingDate > rssFeed.LastProcessedItem)
-                .OrderBy(x => x.PublishingDate);
-
-            //IEnumerable<FeedArticle> results = feed.Articles.Where(x => x.Published > rssFeed.LastProcessedItem).OrderBy(x => x.Published);
-
-            if (!results.Any()) return;
+            //Using Feedreader instead of SyndicationToolbox allows us to ignore any feed items with a null Publish date.
+            
 
 
-            var rssItems = new List<RssToMattermostMessage>();
+            //if (!results.Any()) return;
 
-            ////TODO: There is probably a much better way of doing this
-            switch (rssFeed.FeedType)
-            {
-                case "RedditPost":
-                    rssItems.AddRange(results.Select(fa => new RedditPost(fa, rssFeed.FeedPretext)));
-                    break;
-                case "RedditInbox":
-                    rssItems.AddRange(results.Select(fa => new RedditInbox(fa, rssFeed.FeedPretext)));
-                    break;
-                default://Use Generic Feed
-                    rssItems.AddRange(results.Select(fa => new Generic(fa, rssFeed.FeedPretext)));
-                    break;
-            }
+            //var rssItems = new List<RssToMattermostMessage>();
 
-            foreach (var item in rssItems)
-            {
+            //////TODO: There is probably a much better way of doing this
+            //switch (rssFeed.FeedType)
+            //{
+            //    case "RedditPost":
+            //        rssItems.AddRange(results.Select(fa => new RedditPost(fa, rssFeed.FeedPretext)));
+            //        break;
+            //    case "RedditInbox":
+            //        rssItems.AddRange(results.Select(fa => new RedditInbox(fa, rssFeed.FeedPretext)));
+            //        break;
+            //    default://Use Generic Feed
+            //        rssItems.AddRange(results.Select(fa => new Generic(fa, rssFeed.FeedPretext, rssFeed.IncludeContent)));
+            //        break;
+            //}
 
-                item.Channel = rssFeed.BotChannelOverride == ""
-                    ? Config.BotChannelDefault
-                    : rssFeed.BotChannelOverride;
+//            foreach (var item in rssItems)
+//            {
 
-                item.Username = rssFeed.BotNameOverride == ""
-                    ? Config.BotNameDefault
-                    : rssFeed.BotNameOverride;
 
-                item.IconUrl = rssFeed.BotImageOverride == ""
-                    ? new Uri(Config.BotImageDefault)
-                    : new Uri(rssFeed.BotImageOverride);
+//                item.Channel = rssFeed.BotChannelOverride == ""
+//                    ? Config.BotChannelDefault
+//                    : rssFeed.BotChannelOverride;
 
-                if (!rssFeed.IncludeContent)
-                {
-                    foreach (var att in item.Attachments)
-                    {
-                        att.Text = "";
-                    }
-                }
+//                item.Username = rssFeed.BotNameOverride == ""
+//                    ? Config.BotNameDefault
+//                    : rssFeed.BotNameOverride;
 
-                PostToMattermost(item);
-                rssFeed.LastProcessedItem = item.FeedItem.PublishingDate;
-                Config.Save(ConfigPath);
-            }
+//                item.IconUrl = rssFeed.BotImageOverride == ""
+//                    ? new Uri(Config.BotImageDefault)
+//                    : new Uri(rssFeed.BotImageOverride);
+               
+
+//                PostToMattermost(item);
+//                rssFeed.LastProcessedItem = item.FeedItem.PublishingDate;
+//#if Release
+//                                Config.Save(ConfigPath);
+//#endif
+//            }
 
 
 
 
         }
 
+        private static void ProcessRssFeed(BaseFeed feed)
+        {
+           // var results = feed.Items.Where(x => x.)
+            //throw new NotImplementedException();
+        }
+
+        private static void ProcessRss20Feed(Rss20Feed feed)
+        {
+            Console.WriteLine("Generator: " + feed.Generator);
+            Console.WriteLine("Logo: " + feed.Image);
+            
+            // throw new NotImplementedException();
+        }
+
+        private static void ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
+        {
+            Console.WriteLine("Generator: " + feed.Generator);
+            Console.WriteLine("Logo: " + feed.Logo);
+            //feed
+
+            while (feed.Items.Any())
+            {
+                var atomFeedItem = (AtomFeedItem)feed.Items.First();
+                Console.WriteLine(atomFeedItem.Author);
+
+                if (atomFeedItem.PublishedDate > rssFeed.LastProcessedItem)
+                {
+                    feed.Items.Remove(atomFeedItem);
+                }
+                else
+                {
+                    switch (rssFeed.FeedType)
+                    {
+                        case "RedditPost":
+                            var matterMessage = new RedditPost(atomFeedItem);
+                            break;
+                        case "RedditInbox":
+                            break;
+                        default:
+                            break;
+                                
+                    }
+                }
+                
+                
+            }
+            
+            
+
+            
+            foreach (var item in feed.Items)
+            {
+                
+                //Console.WriteLine((AtomFeedItem); 
+            }
+           // throw new NotImplementedException();
+        }
+
+
         public static async Task<Feed> GetRssFeed(string url)
         {
             try
             {
                 var feed = await FeedReader.ReadAsync(url);
-            
+
 
                 //var httpClient = new HttpClient();
                 //var result = httpClient.GetAsync(url).Result;

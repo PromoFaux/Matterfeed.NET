@@ -32,6 +32,7 @@ namespace MattermostRSS
     public class RssFeed
     {
         public string FeedPretext { get; set; }
+        
         public string Url { get; set; }
 
         public string BotChannelOverride { get; set; } = "";
@@ -40,7 +41,8 @@ namespace MattermostRSS
 
         public bool IncludeContent { get; set; } = true;
 
-        public string FeedType { get; set; } = "";
+        public string FeedSource { get; set; } = "";
+        public string FeedType { get; set; }
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 

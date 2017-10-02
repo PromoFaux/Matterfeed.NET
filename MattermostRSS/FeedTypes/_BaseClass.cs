@@ -20,7 +20,7 @@ namespace MattermostRSS
     /// </summary>
     public class Generic : RssToMattermostMessage
     {
-        public Generic(FeedItem fi, string preText)
+        public Generic(FeedItem fi, string preText, bool includeContent = true)
         {
             var converter = new Converter();
 
@@ -33,11 +33,11 @@ namespace MattermostRSS
                     Pretext = preText,
                     Title = converter.Convert(fi.Title??""),
                     TitleLink = new Uri(fi.Link??""),
-                    Text = converter.Convert(fi.Description??""),
-                    AuthorName = fi.Author
+                    Text = converter.Convert(includeContent? fi.Content??fi.Description??"No Content or Description":fi.Description??"No Description"),
+                    AuthorName = fi.Author??""
                 }
             };
-          
+
         }
     }
 
