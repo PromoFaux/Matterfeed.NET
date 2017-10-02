@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using CodeHollow.FeedReader;
-using Html2Markdown;
-//using CodeKoenig.SyndicationToolbox;
-using Matterhook.NET;
 using Matterhook.NET.MatterhookClient;
+using ReverseMarkdown;
+
 //using ReverseMarkdown;
 
 
@@ -33,9 +31,9 @@ namespace MattermostRSS
                 new MattermostAttachment
                 {
                     Pretext = preText,
-                    Title = converter.Convert(fi.Title),
-                    TitleLink = new Uri(fi.Link),
-                    Text = converter.Convert(fi.Description),
+                    Title = converter.Convert(fi.Title??""),
+                    TitleLink = new Uri(fi.Link??""),
+                    Text = converter.Convert(fi.Description??""),
                     AuthorName = fi.Author
                 }
             };
