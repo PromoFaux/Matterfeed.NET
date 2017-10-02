@@ -101,7 +101,7 @@ namespace MattermostRSS
             var pElements = resultat.DocumentNode.Descendants().Where(x => x.Name == "p").ToList();
 
             var converter = new Converter();
-            var comment = converter.Convert(pElements.Aggregate("", (current, p) => current + $"{p.InnerHtml}\n").Replace("\"/u/", "\"https://reddit.com/u/")
+            var comment = converter.Convert(pElements.Aggregate("", (current, p) => current + $"{p.InnerHtml}<br/>").Replace("\"/u/", "\"https://reddit.com/u/")
                 .Replace("\"/r/", "\"https://reddit.com/r/"));
 
             var commentUrl = fi.Link;

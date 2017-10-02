@@ -38,7 +38,7 @@ namespace MattermostRSS
                     }
                     GC.Collect();
 
-                    Config.Save(ConfigPath);
+                    //Config.Save(ConfigPath);
 
                     Thread.Sleep(Config.BotCheckIntervalMs);
                 }
@@ -126,7 +126,7 @@ namespace MattermostRSS
 
                 PostToMattermost(item);
                 rssFeed.LastProcessedItem = item.FeedItem.PublishingDate;
-
+                Config.Save(ConfigPath);
             }
 
 
@@ -150,9 +150,10 @@ namespace MattermostRSS
                 //return feedParser.Parse();
                 return null;
             }
-            catch (XmlException e)
+            catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                //Problem getting the feed.
+                Console.WriteLine($"Problem retrieving feed\n Exception Message: {e.Message}");
                 return null;
             }
 
