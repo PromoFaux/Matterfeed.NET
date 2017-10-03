@@ -17,13 +17,15 @@ namespace MattermostRSS
         public string BotImageDefault { get; set; } = "";
 
         public List<RssFeed> RssFeeds { get; set; }
+        public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
+
 
         public void Save(string path)
         {
             // serialize JSON directly to a file
             using (var file = File.CreateText(path))
             {
-                var serializer = new JsonSerializer();
+                var serializer = new JsonSerializer {Formatting = Formatting.Indented};
                 serializer.Serialize(file, this);
             }
         }
@@ -32,14 +34,26 @@ namespace MattermostRSS
     public class RssFeed
     {
         public string FeedPretext { get; set; }
+        
         public string Url { get; set; }
 
         public string BotChannelOverride { get; set; } = "";
         public string BotNameOverride { get; set; } = "";
         public string BotImageOverride { get; set; } = "";
 
-        public string FeedType { get; set; } = "";
-        public DateTime LastProcessedItem { get; set; } = new DateTime();
+        public bool IncludeContent { get; set; } = true;
+       
+        public DateTime? LastProcessedItem { get; set; } = new DateTime();
+    }
+
+    public class RedditJsonFeed
+    {
+        public string FeedPretext { get; set; }
+        public string Url { get; set; }
+        public string BotChannelOverride { get; set; } = "";
+        public string BotNameOverride { get; set; } = "";
+        public string BotImageOverride { get; set; } = "";
+        public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
 

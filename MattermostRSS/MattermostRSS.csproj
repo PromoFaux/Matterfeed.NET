@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CodeKoenig.SyndicationToolbox" Version="5.0.2-beta" />
-    <PackageReference Include="Html2Markdown" Version="3.0.0.223" />
-    <PackageReference Include="Matterhook.NET.MatterhookClient" Version="1.1.3" />
+    <PackageReference Include="CodeHollow.FeedReader" Version="1.1.0.2" />
+    <PackageReference Include="Matterhook.NET.MatterhookClient" Version="1.2.3.20" />
+    <PackageReference Include="ReverseMarkdown" Version="1.3.0" />
   </ItemGroup>
 
   <ItemGroup>
