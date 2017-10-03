@@ -3,6 +3,8 @@ Parse RSS Feeds and post them to your Mattermost server!
 
 This is a simple bot, mainly written to improve my .NET Core and Docker experience, and to replace our reliance on IFTTT over at [Pi-hole](https://github.com/pi-hole/), open sourced because it may be useful to others.
 
+In addition to RSS, the bot will also parse Reddit JSON feeds. 
+
 [![Docker Build Status](https://img.shields.io/docker/build/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/builds/) [![Docker Stars](https://img.shields.io/docker/stars/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) 
 
 ## Deployment
@@ -37,41 +39,48 @@ Each `RssFeeds` element can optionally override the default Channel/Bot Name/Bot
 
 `BotImageOverride`
 
-Currently `FeedType` accepts the values `RedditPost` and `RedditInbox`(The ones I personally need so far!), or you can leave it blank for a generic feed. 
+`IncludeContent` - Defaults to `true`. Set to false to exclude feed content
 
-`LastProcessedItem` is automatically added and saved once the bot has looped through all of it's RSS feeds. 
+`LastProcessedItem` is automatically added and saved once the bot has succesfully posted it to Mattermost
+
 
 Example Config and screenshot of output:
 
 ```JSON
 {
-  "BotCheckIntervalMs":30000,
-  "MattermostWebhookUrl": "https://yourmattermostserver.com/hooks/kjnk4j3wnfkse",
-  "BotChannelDefault": "Rss-Feeds",
-  "BotNameDefault": "Adam's Marvelous RSS Bot",
-  "BotImageDefault": "https://whatever.com/image.jpg",
-  "RssFeeds":[  
-    {  
-       "FeedPretext":"New post in /r/pihole!",
-       "Url":"https://www.reddit.com/r/pihole/new.rss",
-       "BotChannelOverride":"",
-       "BotNameOverride":"",
-       "BotImageOverride":"",
-       "FeedType":"RedditPost",
-       "LastProcessedItem":"2017-08-01T19:57:39+00:00"
+    "BotCheckIntervalMs":30000,
+    "MattermostWebhookUrl": "https://yourmattermostserver.com/hooks/kjnk4j3wnfkse",
+    "BotChannelDefault": "Rss-Feeds",
+    "BotNameDefault": "Adam's Marvelous RSS Bot",
+    "BotImageDefault": "https://whatever.com/image.jpg",
+    "RssFeeds":[  
+    {
+        "FeedPretext": "Schneier on Security",
+        "Url": "https://www.schneier.com/blog/atom.xml",
+        "BotChannelOverride": "",
+        "BotNameOverride": "Bruce Schneier",
+        "BotImageOverride": "https://www.schneier.com/images/bruce-blog3.jpg",
+        "IncludeContent": true
     },
-  ]
+    ]
 }
 ```
-![](https://i.imgur.com/r1RyHlg.png)
 
-## Extending FeedTypes
+![](https://i.imgur.com/nW6fRsY.png)
 
-If the generic feed does not handle your message as well as you would like, you can write your own FeedType to format the RSS Feed as you would like to see it.
+## Reddit JSON Feeds
 
-To do so, simply add a new class to [FeedTypes.cs](https://github.com/PromoFaux/MattermostRSS/blob/master/MattermostRSS/MattermostRSS/FeedTypes.cs) inheriting the class `RssToMattermostMessage`, and then adding it to [the switch statement in Program.cs](https://github.com/PromoFaux/MattermostRSS/blob/master/MattermostRSS/MattermostRSS/Program.cs#L78-L89)
+In addition to posting Generic RSS Feeds, I have also added the ability to parse and post messages from Reddit JSON Feeds
 
-Example of a feed that needs formatting: https://news.google.com/?output=rss
-![](https://i.imgur.com/MnIQYZC.png)
-
-If you do come up with any of your own, please consider submitting a Pull Request with your new FeedTypes to help improve the project
+Just add a `RedditJsonFeeds` array to your config file:
+```JSON
+    "RedditJsonFeeds": [
+    {
+        "FeedPretext": "New reddit post from search result!",
+        "Url": "https://www.reddit.com/search.json?q=Pi-hole+OR+pihole+NOT+subreddit%3Apihole",
+        "BotChannelOverride": "Reddit",
+        "BotNameOverride": "",
+        "BotImageOverride": "https://i.imgur.com/3NtinwD.png"
+    }
+    ]
+```

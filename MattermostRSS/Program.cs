@@ -126,7 +126,7 @@ namespace MattermostRSS
                 var rss20FeedItem = (Rss20FeedItem)feed.Items.Last();
 
 
-                if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem)
+                if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem || rss20FeedItem.PublishingDate == null)
                 {
                     feed.Items.Remove(rss20FeedItem);
                 }
@@ -191,7 +191,7 @@ namespace MattermostRSS
             {
                 var atomFeedItem = (AtomFeedItem)feed.Items.Last();
 
-                if (atomFeedItem.PublishedDate <= rssFeed.LastProcessedItem)
+                if (atomFeedItem.PublishedDate <= rssFeed.LastProcessedItem || atomFeedItem.PublishedDate == null)
                 {
                     feed.Items.Remove(atomFeedItem);
                 }
