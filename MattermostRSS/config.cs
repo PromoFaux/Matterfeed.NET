@@ -40,9 +40,7 @@ namespace MattermostRSS
         public string BotImageOverride { get; set; } = "";
 
         public bool IncludeContent { get; set; } = true;
-
-        public string FeedSource { get; set; } = "";
-        public string FeedType { get; set; }
+       
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 

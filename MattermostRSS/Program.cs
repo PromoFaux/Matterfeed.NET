@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
-using CodeHollow.FeedReader.Feeds.Itunes;
 using Newtonsoft.Json;
 using Matterhook.NET.MatterhookClient;
+using ReverseMarkdown;
 
 namespace MattermostRSS
 {
@@ -29,11 +31,14 @@ namespace MattermostRSS
                 //Loop forever. There is probably a more graceful way to do this. 
                 try // lazy try catch, let's see what errors get thrown...
                 {
-                    foreach (var feed in Config.RssFeeds)
+                    if (Config.RssFeeds != null)
                     {
-                        Task.WaitAll(ProcessFeeds(feed));
-                        
+                        foreach (var feed in Config.RssFeeds)
+                        {
+                            Task.WaitAll(ProcessRss(feed));
+                        }
                     }
+                  
                     GC.Collect();
 
                     //Config.Save(ConfigPath);
@@ -43,9 +48,7 @@ namespace MattermostRSS
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-
                 }
-
             }
         }
 
@@ -55,7 +58,7 @@ namespace MattermostRSS
                 using (var file = File.OpenText(ConfigPath))
                 {
                     var serializer = new JsonSerializer();
-                    Config = (Config)serializer.Deserialize(file, typeof(Config));
+                    Config = (Config) serializer.Deserialize(file, typeof(Config));
                 }
             else
             {
@@ -64,43 +67,27 @@ namespace MattermostRSS
             }
         }
 
-        private static async Task ProcessFeeds(RssFeed rssFeed)
+        #region RSS
+
+        private static async Task ProcessRss(RssFeed rssFeed)
         {
-
-
-            switch (rssFeed.FeedType)
-            {
-                case "RSS":
-                    break;
-                case "JSON":
-                    break;
-                case null:
-                    Console.WriteLine("Feed Type not set");
-                    break;
-                default :
-                    Console.WriteLine("Feed Type not set");
-                    break;
-            }
-            //Below method is obsolete. TODO: Update to use ReadAsync (quickfix for now)
             Console.WriteLine("");
-            var feed = await FeedReader.ReadAsync(rssFeed.Url);
-            Console.WriteLine("Feed Title: " + feed.Title);
-            //var test1 = new List<AtomFeedItem>();
+            var feed = await GetRssFeed(rssFeed.Url);
+            Console.WriteLine($"Feed Title: {feed.Title}");
+
 
             switch (feed.Type)
             {
                 case FeedType.Atom:
                     Console.WriteLine("FeedType: Atom");
-                    ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
+                    await ProcessAtomFeed((AtomFeed) feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss:
                     Console.WriteLine("FeedType: RSS");
-                    
-                    ProcessRssFeed(feed.SpecificFeed);
                     break;
                 case FeedType.Rss_2_0:
                     Console.WriteLine("FeedType: RSS 2.0");
-                    ProcessRss20Feed((Rss20Feed)feed.SpecificFeed);
+                    await ProcessRss20Feed((Rss20Feed) feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss_0_91:
                     Console.WriteLine("FeedType: RSS 0.91");
@@ -115,83 +102,76 @@ namespace MattermostRSS
                     Console.WriteLine("FeedType: Unknown");
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    Console.WriteLine("FeedType: Unknown");
+                    break;
             }
+        }
 
+        private static async Task ProcessRss20Feed(Rss20Feed feed, RssFeed rssFeed)
+        {
+            Console.WriteLine($"Generator: {feed.Generator}");
 
-
-            if (feed == null)
+            while (feed.Items.Any())
             {
-                Console.WriteLine($"{DateTime.Now}RSS feed returned null");
-                return;
+                var rss20FeedItem = (Rss20FeedItem) feed.Items.Last();
+
+
+                if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem)
+                {
+                    feed.Items.Remove(rss20FeedItem);
+                }
+                else
+                {
+                    Console.WriteLine($"Posting: {rss20FeedItem.Title}");
+                    var converter = new Converter();
+
+                    var message = new MattermostMessage
+                    {
+                        Channel = rssFeed.BotChannelOverride == ""
+                            ? Config.BotChannelDefault
+                            : rssFeed.BotChannelOverride,
+                        Username = rssFeed.BotNameOverride == ""
+                            ? Config.BotNameDefault
+                            : rssFeed.BotNameOverride,
+                        IconUrl = rssFeed.BotImageOverride == ""
+                            ? new Uri(Config.BotImageDefault)
+                            : new Uri(rssFeed.BotImageOverride),
+                        Attachments = new List<MattermostAttachment>
+                        {
+                            new MattermostAttachment
+                            {
+                                Pretext = rssFeed.FeedPretext,
+                                Title = rss20FeedItem.Title ?? "",
+                                TitleLink = rss20FeedItem.Link == null ? null : new Uri(rss20FeedItem.Link),
+                                Text = converter.Convert(rssFeed.IncludeContent
+                                    ? rss20FeedItem.Content ?? rss20FeedItem.Description ?? ""
+                                    : rss20FeedItem.Description ?? ""),
+                                AuthorName = rss20FeedItem.Author
+                            }
+                        }
+                    };
+
+                    var response = await PostToMattermost(message);
+
+                    if (response == null || response.StatusCode != HttpStatusCode.OK)
+                    {
+                        Console.WriteLine(response != null
+                            ? $"Unable to post to Mattermost {response.StatusCode}"
+                            : "Unable to post to Mattermost");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Succesfully posted to Mattermost");
+                        rssFeed.LastProcessedItem = rss20FeedItem.PublishingDate;
+                        Config.Save(ConfigPath);
+                    }
+
+                    feed.Items.Remove(rss20FeedItem);
+                }
             }
-
-            //Using Feedreader instead of SyndicationToolbox allows us to ignore any feed items with a null Publish date.
-            
-
-
-            //if (!results.Any()) return;
-
-            //var rssItems = new List<RssToMattermostMessage>();
-
-            //////TODO: There is probably a much better way of doing this
-            //switch (rssFeed.FeedType)
-            //{
-            //    case "RedditPost":
-            //        rssItems.AddRange(results.Select(fa => new RedditPost(fa, rssFeed.FeedPretext)));
-            //        break;
-            //    case "RedditInbox":
-            //        rssItems.AddRange(results.Select(fa => new RedditInbox(fa, rssFeed.FeedPretext)));
-            //        break;
-            //    default://Use Generic Feed
-            //        rssItems.AddRange(results.Select(fa => new Generic(fa, rssFeed.FeedPretext, rssFeed.IncludeContent)));
-            //        break;
-            //}
-
-//            foreach (var item in rssItems)
-//            {
-
-
-//                item.Channel = rssFeed.BotChannelOverride == ""
-//                    ? Config.BotChannelDefault
-//                    : rssFeed.BotChannelOverride;
-
-//                item.Username = rssFeed.BotNameOverride == ""
-//                    ? Config.BotNameDefault
-//                    : rssFeed.BotNameOverride;
-
-//                item.IconUrl = rssFeed.BotImageOverride == ""
-//                    ? new Uri(Config.BotImageDefault)
-//                    : new Uri(rssFeed.BotImageOverride);
-               
-
-//                PostToMattermost(item);
-//                rssFeed.LastProcessedItem = item.FeedItem.PublishingDate;
-//#if Release
-//                                Config.Save(ConfigPath);
-//#endif
-//            }
-
-
-
-
         }
 
-        private static void ProcessRssFeed(BaseFeed feed)
-        {
-           // var results = feed.Items.Where(x => x.)
-            //throw new NotImplementedException();
-        }
-
-        private static void ProcessRss20Feed(Rss20Feed feed)
-        {
-            Console.WriteLine("Generator: " + feed.Generator);
-            Console.WriteLine("Logo: " + feed.Image);
-            
-            // throw new NotImplementedException();
-        }
-
-        private static void ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
+        private static async Task ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
         {
             Console.WriteLine("Generator: " + feed.Generator);
             Console.WriteLine("Logo: " + feed.Logo);
@@ -199,40 +179,62 @@ namespace MattermostRSS
 
             while (feed.Items.Any())
             {
-                var atomFeedItem = (AtomFeedItem)feed.Items.First();
-                Console.WriteLine(atomFeedItem.Author);
+                var atomFeedItem = (AtomFeedItem) feed.Items.Last();
 
-                if (atomFeedItem.PublishedDate > rssFeed.LastProcessedItem)
+                if (atomFeedItem.PublishedDate <= rssFeed.LastProcessedItem)
                 {
                     feed.Items.Remove(atomFeedItem);
                 }
                 else
                 {
-                    switch (rssFeed.FeedType)
-                    {
-                        case "RedditPost":
-                            var matterMessage = new RedditPost(atomFeedItem);
-                            break;
-                        case "RedditInbox":
-                            break;
-                        default:
-                            break;
-                                
-                    }
-                }
-                
-                
-            }
-            
-            
+                    Console.WriteLine($"Posting: {atomFeedItem.Title}");
+                    var converter = new Converter();
 
-            
-            foreach (var item in feed.Items)
-            {
-                
-                //Console.WriteLine((AtomFeedItem); 
+                    var message = new MattermostMessage
+                    {
+                        Channel = rssFeed.BotChannelOverride == ""
+                            ? Config.BotChannelDefault
+                            : rssFeed.BotChannelOverride,
+                        Username = rssFeed.BotNameOverride == ""
+                            ? Config.BotNameDefault
+                            : rssFeed.BotNameOverride,
+                        IconUrl = rssFeed.BotImageOverride == ""
+                            ? new Uri(Config.BotImageDefault)
+                            : new Uri(rssFeed.BotImageOverride),
+                        Attachments = new List<MattermostAttachment>
+                        {
+                            new MattermostAttachment
+                            {
+                                Pretext = rssFeed.FeedPretext,
+                                Title = atomFeedItem.Title ?? "",
+                                TitleLink = atomFeedItem.Link == null ? null : new Uri(atomFeedItem.Link),
+                                Text = converter.Convert(rssFeed.IncludeContent
+                                    ? atomFeedItem.Content ?? atomFeedItem.Summary ?? "No Content or Description"
+                                    : atomFeedItem.Summary ?? ""),
+                                AuthorName = atomFeedItem.Author.Name ?? "",
+                                AuthorLink = atomFeedItem.Author.Uri == null ? null : new Uri(atomFeedItem.Author.Uri)
+                            }
+                        }
+                    };
+
+                    var response = await PostToMattermost(message);
+
+                    if (response == null || response.StatusCode != HttpStatusCode.OK)
+                    {
+                        Console.WriteLine(response != null
+                            ? $"Unable to post to Mattermost {response.StatusCode}"
+                            : "Unable to post to Mattermost");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Succesfully posted to Mattermost");
+                        rssFeed.LastProcessedItem = atomFeedItem.PublishedDate;
+                        Config.Save(ConfigPath);
+                    }
+
+                    feed.Items.Remove(atomFeedItem);
+                }
             }
-           // throw new NotImplementedException();
         }
 
 
@@ -240,17 +242,7 @@ namespace MattermostRSS
         {
             try
             {
-                var feed = await FeedReader.ReadAsync(url);
-
-
-                //var httpClient = new HttpClient();
-                //var result = httpClient.GetAsync(url).Result;
-                //var stream = result.Content.ReadAsStreamAsync().Result;
-                //var itemXml = XElement.Load(stream);
-                //var feedParser = FeedParser.Create(itemXml.ToString());
-
-                //return feedParser.Parse();
-                return null;
+                return await FeedReader.ReadAsync(url);
             }
             catch (Exception e)
             {
@@ -258,26 +250,15 @@ namespace MattermostRSS
                 Console.WriteLine($"Problem retrieving feed\n Exception Message: {e.Message}");
                 return null;
             }
-
         }
 
-        public static void PostStringToMattermost(string error)
-        {
-            var m = new MattermostMessage
-            {
-                Text = error,
-                Channel = Config.BotChannelDefault,
-                Username = Config.BotNameDefault
-            };
+        #endregion
 
-
-            PostToMattermost(m);
-        }
-
-        public static void PostToMattermost(MattermostMessage message)
+        public static async Task<HttpResponseMessage> PostToMattermost(MattermostMessage message)
         {
             var mc = new MatterhookClient(Config.MattermostWebhookUrl);
-            Task.WaitAll(mc.PostAsync(message));
+            var response = await mc.PostAsync(message);
+            return response;
         }
     }
 }
