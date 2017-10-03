@@ -4,13 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
 using Newtonsoft.Json;
 using Matterhook.NET.MatterhookClient;
-using ReverseMarkdown;
+using Newtonsoft.Json.Linq;
+using Converter = ReverseMarkdown.Converter;
 
 namespace MattermostRSS
 {
@@ -38,10 +41,16 @@ namespace MattermostRSS
                             Task.WaitAll(ProcessRss(feed));
                         }
                     }
-                  
-                    GC.Collect();
 
-                    //Config.Save(ConfigPath);
+                    if (Config.RedditJsonFeeds != null)
+                    {
+                        foreach (var feed in Config.RedditJsonFeeds)
+                        {
+                            Task.WaitAll(ProcessReddit(feed));
+                        }
+                    }
+
+                    GC.Collect();
 
                     Thread.Sleep(Config.BotCheckIntervalMs);
                 }
@@ -52,13 +61,14 @@ namespace MattermostRSS
             }
         }
 
+
         private static void LoadConfig()
         {
             if (File.Exists(ConfigPath))
                 using (var file = File.OpenText(ConfigPath))
                 {
                     var serializer = new JsonSerializer();
-                    Config = (Config) serializer.Deserialize(file, typeof(Config));
+                    Config = (Config)serializer.Deserialize(file, typeof(Config));
                 }
             else
             {
@@ -80,14 +90,14 @@ namespace MattermostRSS
             {
                 case FeedType.Atom:
                     Console.WriteLine("FeedType: Atom");
-                    await ProcessAtomFeed((AtomFeed) feed.SpecificFeed, rssFeed);
+                    await ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss:
                     Console.WriteLine("FeedType: RSS");
                     break;
                 case FeedType.Rss_2_0:
                     Console.WriteLine("FeedType: RSS 2.0");
-                    await ProcessRss20Feed((Rss20Feed) feed.SpecificFeed, rssFeed);
+                    await ProcessRss20Feed((Rss20Feed)feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss_0_91:
                     Console.WriteLine("FeedType: RSS 0.91");
@@ -113,7 +123,7 @@ namespace MattermostRSS
 
             while (feed.Items.Any())
             {
-                var rss20FeedItem = (Rss20FeedItem) feed.Items.Last();
+                var rss20FeedItem = (Rss20FeedItem)feed.Items.Last();
 
 
                 if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem)
@@ -179,7 +189,7 @@ namespace MattermostRSS
 
             while (feed.Items.Any())
             {
-                var atomFeedItem = (AtomFeedItem) feed.Items.Last();
+                var atomFeedItem = (AtomFeedItem)feed.Items.Last();
 
                 if (atomFeedItem.PublishedDate <= rssFeed.LastProcessedItem)
                 {
@@ -251,6 +261,108 @@ namespace MattermostRSS
                 return null;
             }
         }
+
+        #endregion
+
+        #region RedditJSONFeeds
+
+        private static async Task ProcessReddit(RedditJsonFeed feed)
+        {
+            using (var wc = new WebClient())
+            {
+                var json = wc.DownloadString(feed.Url);
+                var items = JsonConvert.DeserializeObject<RedditJson>(json).RedditJsonData.RedditJsonChildren
+                    .Where(y => y.Data.Created > feed.LastProcessedItem).OrderBy(x => x.Data.Created);
+
+                if (!items.Any()) return;
+
+                foreach (var item in items)
+                {
+                    var message = new MattermostMessage
+                    {
+                        Channel = feed.BotChannelOverride == ""
+                            ? Config.BotChannelDefault
+                            : feed.BotChannelOverride,
+                        Username = feed.BotNameOverride == ""
+                            ? Config.BotNameDefault
+                            : feed.BotNameOverride,
+                        IconUrl = feed.BotImageOverride == ""
+                            ? new Uri(Config.BotImageDefault)
+                            : new Uri(feed.BotImageOverride)
+                        
+                    };
+
+                    switch (item.Kind)
+                    {
+                        case "t3":
+                            string content;
+                            switch (item.Data.PostHint)
+                            {
+                               case "link":
+                                    content = $"Linked Content: {item.Data.Url}";
+                                    break;
+                                default:
+                                    content = item.Data.Selftext;
+                                    break;
+                            }
+
+                            message.Attachments = new List<MattermostAttachment>
+                            {
+                                new MattermostAttachment
+                                {
+                                    AuthorName = $"/u/{item.Data.Author}",
+                                    AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                    Title = item.Data.Title,
+                                    TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
+                                    Text = content,
+                                    Pretext = feed.FeedPretext
+                                }
+                            };
+                            message.Text = $"#{Regex.Replace(item.Data.Title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "")}";
+
+                            break;
+                        case "t4":
+
+                            message.Attachments = new List<MattermostAttachment>
+                            {
+                                new MattermostAttachment
+                                {
+                                    AuthorName = $"/u/{item.Data.Author}",
+                                    AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                    Title = item.Data.Subject,
+                                    TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
+                                    Text = item.Data.Body.Replace("](/r/","](https://reddit.com/r/"), //expand /r/ markdown links
+                                    Pretext = feed.FeedPretext
+                                }
+                            };
+
+                            //message.Attachments = new List<MattermostAttachment> { GetInboxAttachment(item.Data) };
+                            break;
+                    }
+
+                    var response = await PostToMattermost(message);
+
+                    if (response == null || response.StatusCode != HttpStatusCode.OK)
+                    {
+                        Console.WriteLine(response != null
+                            ? $"Unable to post to Mattermost {response.StatusCode}"
+                            : "Unable to post to Mattermost");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Succesfully posted to Mattermost");
+                        feed.LastProcessedItem = item.Data.Created;
+                        Config.Save(ConfigPath);
+                    }
+
+                }
+
+                Console.WriteLine("hello");
+            }
+        }
+
+
+
 
         #endregion
 
