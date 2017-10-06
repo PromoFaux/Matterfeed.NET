@@ -56,7 +56,10 @@ namespace MattermostRSS
                 }
                 catch (Exception e)
                 {
+                    //this is terrible error handling.
+                    Console.WriteLine("-------------------------------------------------------------");
                     Console.WriteLine(e.Message);
+                    Console.WriteLine("-------------------------------------------------------------");
                 }
             }
         }
@@ -81,23 +84,32 @@ namespace MattermostRSS
 
         private static async Task ProcessRss(RssFeed rssFeed)
         {
-            Console.WriteLine("");
-            var feed = await GetRssFeed(rssFeed.Url);
-            Console.WriteLine($"Feed Title: {feed.Title}");
+            var stuffToLog = $"\n{DateTime.Now}\nFetching RSS URL: {rssFeed.Url}";
 
+            Feed feed;
+
+            try
+            {
+                feed = await FeedReader.ReadAsync(rssFeed.Url);
+            }
+            catch (Exception e)
+            {
+                stuffToLog += $"\n Unable to get feed. Exception: {e.Message}";
+                Console.WriteLine(stuffToLog);
+                return;
+            }
+            
 
             switch (feed.Type)
             {
                 case FeedType.Atom:
-                    Console.WriteLine("FeedType: Atom");
-                    await ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
+                    stuffToLog += await ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss:
                     Console.WriteLine("FeedType: RSS");
                     break;
                 case FeedType.Rss_2_0:
-                    Console.WriteLine("FeedType: RSS 2.0");
-                    await ProcessRss20Feed((Rss20Feed)feed.SpecificFeed, rssFeed);
+                    stuffToLog += await ProcessRss20Feed((Rss20Feed)feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss_0_91:
                     Console.WriteLine("FeedType: RSS 0.91");
@@ -115,16 +127,21 @@ namespace MattermostRSS
                     Console.WriteLine("FeedType: Unknown");
                     break;
             }
+
+            Console.WriteLine(stuffToLog);
         }
 
-        private static async Task ProcessRss20Feed(Rss20Feed feed, RssFeed rssFeed)
+        private static async Task<string> ProcessRss20Feed(Rss20Feed feed, RssFeed rssFeed)
         {
-            Console.WriteLine($"Generator: {feed.Generator}");
+            var retVal = $"\nFeed Type: Rss 2.0\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}";
+
+            var itemCount = feed.Items.Count;
+            var procCount = 0;
+            var failedMmPostCount = 0;
 
             while (feed.Items.Any())
             {
                 var rss20FeedItem = (Rss20FeedItem)feed.Items.Last();
-
 
                 if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem || rss20FeedItem.PublishingDate == null)
                 {
@@ -132,7 +149,6 @@ namespace MattermostRSS
                 }
                 else
                 {
-                    Console.WriteLine($"Posting: {rss20FeedItem.Title}");
                     var converter = new Converter();
 
                     var message = new MattermostMessage
@@ -161,30 +177,46 @@ namespace MattermostRSS
                         }
                     };
 
+
                     var response = await PostToMattermost(message);
 
                     if (response == null || response.StatusCode != HttpStatusCode.OK)
                     {
-                        Console.WriteLine(response != null
-                            ? $"Unable to post to Mattermost {response.StatusCode}"
-                            : "Unable to post to Mattermost");
+                        //Try again up to three times, if it fails, give up.
+                        if (failedMmPostCount == 3)
+                        {
+                            retVal += response != null
+                                ? $"\nUnable to post to Mattermost, abandoning feed.{response.StatusCode}"
+                                : $"\nUnable to post to Mattermost, abandoning feed.";
+                            return retVal;
+                        }
+
+                        failedMmPostCount++;
+
                     }
                     else
                     {
-                        Console.WriteLine("Succesfully posted to Mattermost");
+                        //Console.WriteLine("Succesfully posted to Mattermost");
                         rssFeed.LastProcessedItem = rss20FeedItem.PublishingDate;
                         Config.Save(ConfigPath);
+                        procCount++;
+                        feed.Items.Remove(rss20FeedItem);
                     }
 
-                    feed.Items.Remove(rss20FeedItem);
                 }
             }
+
+            retVal += $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
+            return retVal;
         }
 
-        private static async Task ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
+        private static async Task<string> ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
         {
-            Console.WriteLine("Generator: " + feed.Generator);
-            Console.WriteLine("Logo: " + feed.Logo);
+            var retval = $"\nFeed Type: Atom\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}";
+
+            var itemCount = feed.Items.Count;
+            var procCount = 0;
+            var failedMmPostCount = 0;
             //feed
 
             while (feed.Items.Any())
@@ -197,7 +229,7 @@ namespace MattermostRSS
                 }
                 else
                 {
-                    Console.WriteLine($"Posting: {atomFeedItem.Title}");
+                   
                     var converter = new Converter();
 
                     var message = new MattermostMessage
@@ -219,62 +251,73 @@ namespace MattermostRSS
                                 Title = atomFeedItem.Title ?? "",
                                 TitleLink = atomFeedItem.Link == null ? null : new Uri(atomFeedItem.Link),
                                 Text = converter.Convert(rssFeed.IncludeContent
-                                    ? atomFeedItem.Content ?? atomFeedItem.Summary ?? "No Content or Description"
+                                    ? atomFeedItem.Content ?? atomFeedItem.Summary ?? ""
                                     : atomFeedItem.Summary ?? ""),
                                 AuthorName = atomFeedItem.Author.Name ?? "",
                                 AuthorLink = atomFeedItem.Author.Uri == null ? null : new Uri(atomFeedItem.Author.Uri)
                             }
                         }
                     };
-
                     var response = await PostToMattermost(message);
 
                     if (response == null || response.StatusCode != HttpStatusCode.OK)
                     {
-                        Console.WriteLine(response != null
-                            ? $"Unable to post to Mattermost {response.StatusCode}"
-                            : "Unable to post to Mattermost");
+                        //Try again up to three times, if it fails, give up.
+                        if (failedMmPostCount == 3)
+                        {
+                            retval += response != null
+                                ? $"\nUnable to post to Mattermost, abandoning feed.{response.StatusCode}"
+                                : "\nUnable to post to Mattermost, abandoning feed.";
+                            return retval;
+                        }
+
+                        failedMmPostCount++;
+
                     }
                     else
                     {
-                        Console.WriteLine("Succesfully posted to Mattermost");
+                        //Console.WriteLine("Succesfully posted to Mattermost");
                         rssFeed.LastProcessedItem = atomFeedItem.PublishedDate;
                         Config.Save(ConfigPath);
+                        procCount++;
+                        feed.Items.Remove(atomFeedItem);
                     }
-
-                    feed.Items.Remove(atomFeedItem);
                 }
             }
+
+            retval += $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
+            return retval;
         }
 
+#endregion
 
-        public static async Task<Feed> GetRssFeed(string url)
-        {
-            try
-            {
-                return await FeedReader.ReadAsync(url);
-            }
-            catch (Exception e)
-            {
-                //Problem getting the feed.
-                Console.WriteLine($"Problem retrieving feed\n Exception Message: {e.Message}");
-                return null;
-            }
-        }
-
-        #endregion
-
-        #region RedditJSONFeeds
+#region RedditJSONFeeds
 
         private static async Task ProcessReddit(RedditJsonFeed feed)
         {
             using (var wc = new WebClient())
             {
-                var json = wc.DownloadString(feed.Url);
+                var stuffToLog = $"\n{DateTime.Now}\nFetching Reddit URL: {feed.Url}";
+
+                string json;
+                try
+                {
+                    json = wc.DownloadString(feed.Url);
+                }
+                catch (Exception e)
+                {
+                    stuffToLog += $"\nUnable to get feed, exception: {e.Message}";
+                    Console.WriteLine(stuffToLog);
+                    return;
+                }
+                
+                //only get items we have not already processed
                 var items = JsonConvert.DeserializeObject<RedditJson>(json).RedditJsonData.RedditJsonChildren
                     .Where(y => y.Data.Created > feed.LastProcessedItem).OrderBy(x => x.Data.Created);
 
-                if (!items.Any()) return;
+                var itemCount = items.Count();
+                var procCount = 0;
+                var failedMmPostCount = 0;
 
                 foreach (var item in items)
                 {
@@ -289,7 +332,7 @@ namespace MattermostRSS
                         IconUrl = feed.BotImageOverride == ""
                             ? new Uri(Config.BotImageDefault)
                             : new Uri(feed.BotImageOverride)
-                        
+
                     };
 
                     switch (item.Kind)
@@ -298,7 +341,7 @@ namespace MattermostRSS
                             string content;
                             switch (item.Data.PostHint)
                             {
-                               case "link":
+                                case "link":
                                     content = $"Linked Content: {item.Data.Url}";
                                     break;
                                 default:
@@ -335,8 +378,6 @@ namespace MattermostRSS
                                     Pretext = feed.FeedPretext
                                 }
                             };
-
-                            //message.Attachments = new List<MattermostAttachment> { GetInboxAttachment(item.Data) };
                             break;
                     }
 
@@ -344,27 +385,35 @@ namespace MattermostRSS
 
                     if (response == null || response.StatusCode != HttpStatusCode.OK)
                     {
-                        Console.WriteLine(response != null
-                            ? $"Unable to post to Mattermost {response.StatusCode}"
-                            : "Unable to post to Mattermost");
+                        //Try again up to three times, if it fails, give up.
+                        if (failedMmPostCount == 3)
+                        {
+                            stuffToLog += response != null
+                                ? $"\nUnable to post to Mattermost, abandoning feed.{response.StatusCode}"
+                                : $"\nUnable to post to Mattermost, abandoning feed.";
+                            Console.WriteLine(stuffToLog);
+                            return;
+                        }
+
+                        failedMmPostCount++;
+
                     }
                     else
                     {
-                        Console.WriteLine("Succesfully posted to Mattermost");
+                        //"Succesfully posted to Mattermost");
                         feed.LastProcessedItem = item.Data.Created;
                         Config.Save(ConfigPath);
+                        procCount++;
                     }
 
                 }
 
-                Console.WriteLine("hello");
+                stuffToLog += $"\nProcessed {procCount}/{itemCount} items.";
+                Console.WriteLine(stuffToLog);
             }
         }
 
-
-
-
-        #endregion
+#endregion
 
         public static async Task<HttpResponseMessage> PostToMattermost(MattermostMessage message)
         {
