@@ -18,6 +18,7 @@ namespace MattermostRSS
 
         public List<RssFeed> RssFeeds { get; set; }
         public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
+        public TwitterFeed TwitterFeed { get; set; }
 
 
         public void Save(string path)
@@ -56,6 +57,22 @@ namespace MattermostRSS
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
+    public class TwitterFeed
+    {
+        public string ConsumerKey { get; set; }
+        public string ConsumerSecret { get; set; }
+        public string AccessToken { get; set; }
+        public string AccessTokenSecret { get; set; }
 
+        public List<TwitterSearch> Searches { get; set; }
+    }
 
+    public class TwitterSearch
+    {
+        public string SearchTerm { get; set; }
+        public string BotChannelOverride { get; set; } = "";
+        public string BotNameOverride { get; set; } = "";
+        public string BotImageOverride { get; set; } = "";
+        public long LastProcessedId { get; set; } = 0;
+    }
 }

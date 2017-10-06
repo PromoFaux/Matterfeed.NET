@@ -13,7 +13,12 @@ using CodeHollow.FeedReader.Feeds;
 using Newtonsoft.Json;
 using Matterhook.NET.MatterhookClient;
 using Newtonsoft.Json.Linq;
+using Tweetinvi;
+using Tweetinvi.Json;
+using Tweetinvi.Models;
+using Tweetinvi.Parameters;
 using Converter = ReverseMarkdown.Converter;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace MattermostRSS
 {
@@ -34,21 +39,27 @@ namespace MattermostRSS
                 //Loop forever. There is probably a more graceful way to do this. 
                 try // lazy try catch, let's see what errors get thrown...
                 {
-                    if (Config.RssFeeds != null)
+                    //if (Config.RssFeeds != null)
+                    //{
+                    //    foreach (var feed in Config.RssFeeds)
+                    //    {
+                    //        Task.WaitAll(ProcessRss(feed));
+                    //    }
+                    //}
+
+                    //if (Config.RedditJsonFeeds != null)
+                    //{
+                    //    foreach (var feed in Config.RedditJsonFeeds)
+                    //    {
+                    //        Task.WaitAll(ProcessReddit(feed));
+                    //    }
+                    //}
+
+                    if (Config.TwitterFeed != null)
                     {
-                        foreach (var feed in Config.RssFeeds)
-                        {
-                            Task.WaitAll(ProcessRss(feed));
-                        }
+                        ProcessTwitter();
                     }
 
-                    if (Config.RedditJsonFeeds != null)
-                    {
-                        foreach (var feed in Config.RedditJsonFeeds)
-                        {
-                            Task.WaitAll(ProcessReddit(feed));
-                        }
-                    }
 
                     GC.Collect();
 
@@ -71,7 +82,7 @@ namespace MattermostRSS
                 using (var file = File.OpenText(ConfigPath))
                 {
                     var serializer = new JsonSerializer();
-                    Config = (Config)serializer.Deserialize(file, typeof(Config));
+                    Config = (Config) serializer.Deserialize(file, typeof(Config));
                 }
             else
             {
@@ -98,18 +109,18 @@ namespace MattermostRSS
                 Console.WriteLine(stuffToLog);
                 return;
             }
-            
+
 
             switch (feed.Type)
             {
                 case FeedType.Atom:
-                    stuffToLog += await ProcessAtomFeed((AtomFeed)feed.SpecificFeed, rssFeed);
+                    stuffToLog += await ProcessAtomFeed((AtomFeed) feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss:
                     Console.WriteLine("FeedType: RSS");
                     break;
                 case FeedType.Rss_2_0:
-                    stuffToLog += await ProcessRss20Feed((Rss20Feed)feed.SpecificFeed, rssFeed);
+                    stuffToLog += await ProcessRss20Feed((Rss20Feed) feed.SpecificFeed, rssFeed);
                     break;
                 case FeedType.Rss_0_91:
                     Console.WriteLine("FeedType: RSS 0.91");
@@ -141,7 +152,7 @@ namespace MattermostRSS
 
             while (feed.Items.Any())
             {
-                var rss20FeedItem = (Rss20FeedItem)feed.Items.Last();
+                var rss20FeedItem = (Rss20FeedItem) feed.Items.Last();
 
                 if (rss20FeedItem.PublishingDate <= rssFeed.LastProcessedItem || rss20FeedItem.PublishingDate == null)
                 {
@@ -192,7 +203,6 @@ namespace MattermostRSS
                         }
 
                         failedMmPostCount++;
-
                     }
                     else
                     {
@@ -202,11 +212,11 @@ namespace MattermostRSS
                         procCount++;
                         feed.Items.Remove(rss20FeedItem);
                     }
-
                 }
             }
 
-            retVal += $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
+            retVal +=
+                $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
             return retVal;
         }
 
@@ -221,7 +231,7 @@ namespace MattermostRSS
 
             while (feed.Items.Any())
             {
-                var atomFeedItem = (AtomFeedItem)feed.Items.Last();
+                var atomFeedItem = (AtomFeedItem) feed.Items.Last();
 
                 if (atomFeedItem.PublishedDate <= rssFeed.LastProcessedItem || atomFeedItem.PublishedDate == null)
                 {
@@ -229,7 +239,6 @@ namespace MattermostRSS
                 }
                 else
                 {
-                   
                     var converter = new Converter();
 
                     var message = new MattermostMessage
@@ -272,7 +281,6 @@ namespace MattermostRSS
                         }
 
                         failedMmPostCount++;
-
                     }
                     else
                     {
@@ -285,13 +293,14 @@ namespace MattermostRSS
                 }
             }
 
-            retval += $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
+            retval +=
+                $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
             return retval;
         }
 
-#endregion
+        #endregion
 
-#region RedditJSONFeeds
+        #region RedditJSONFeeds
 
         private static async Task ProcessReddit(RedditJsonFeed feed)
         {
@@ -310,7 +319,7 @@ namespace MattermostRSS
                     Console.WriteLine(stuffToLog);
                     return;
                 }
-                
+
                 //only get items we have not already processed
                 var items = JsonConvert.DeserializeObject<RedditJson>(json).RedditJsonData.RedditJsonChildren
                     .Where(y => y.Data.Created > feed.LastProcessedItem).OrderBy(x => x.Data.Created);
@@ -332,7 +341,6 @@ namespace MattermostRSS
                         IconUrl = feed.BotImageOverride == ""
                             ? new Uri(Config.BotImageDefault)
                             : new Uri(feed.BotImageOverride)
-
                     };
 
                     switch (item.Kind)
@@ -374,7 +382,9 @@ namespace MattermostRSS
                                     AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
                                     Title = item.Data.Subject,
                                     TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
-                                    Text = item.Data.Body.Replace("](/r/","](https://reddit.com/r/"), //expand /r/ markdown links
+                                    Text =
+                                        item.Data.Body.Replace("](/r/",
+                                            "](https://reddit.com/r/"), //expand /r/ markdown links
                                     Pretext = feed.FeedPretext
                                 }
                             };
@@ -396,7 +406,6 @@ namespace MattermostRSS
                         }
 
                         failedMmPostCount++;
-
                     }
                     else
                     {
@@ -405,7 +414,6 @@ namespace MattermostRSS
                         Config.Save(ConfigPath);
                         procCount++;
                     }
-
                 }
 
                 stuffToLog += $"\nProcessed {procCount}/{itemCount} items.";
@@ -413,7 +421,81 @@ namespace MattermostRSS
             }
         }
 
-#endregion
+        #endregion
+
+        #region Twitter
+
+        private static async void ProcessTwitter()
+        {
+            var retval = $"\n{DateTime.Now}\nTwitter\n";
+
+            Auth.SetUserCredentials(Config.TwitterFeed.ConsumerKey, Config.TwitterFeed.ConsumerSecret,
+                Config.TwitterFeed.AccessToken, Config.TwitterFeed.AccessTokenSecret);
+            var authenticatedUser = User.GetAuthenticatedUser();
+            Console.WriteLine(authenticatedUser);
+            var rateLimits = RateLimit.GetCurrentCredentialsRateLimits();
+            Console.WriteLine(rateLimits.SearchTweetsLimit);
+
+            if (Config.TwitterFeed.Searches.Any())
+            {
+                foreach (var s in Config.TwitterFeed.Searches)
+                {
+                    var searchParameter = new SearchTweetsParameters(s.SearchTerm)
+                    {
+                        SearchType = SearchResultType.Mixed,
+                        MaximumNumberOfResults = 100,
+                        SinceId = s.LastProcessedId
+                    };
+
+                    var tweets = Search.SearchTweets(searchParameter);
+
+                    foreach (var t in tweets.OrderBy(x => x.Id))
+                    {
+                        var message = new MattermostMessage
+                        {
+                            Channel = s.BotChannelOverride == ""
+                                ? Config.BotChannelDefault
+                                : s.BotChannelOverride,
+                            Username = s.BotNameOverride == ""
+                                ? Config.BotNameDefault
+                                : s.BotNameOverride,
+                            IconUrl = s.BotImageOverride == ""
+                                ? new Uri(Config.BotImageDefault)
+                                : new Uri(s.BotImageOverride),
+                            Attachments = new List<MattermostAttachment>
+                            {
+                                new MattermostAttachment
+                                {
+                                    Pretext = "tweet",
+                                    Title = "New Tweet from Search Result",
+                                    TitleLink = new Uri(t.Url??""),
+                                    Text = $">{t.FullText??""}",
+                                    AuthorName = t.CreatedBy.Name??"",
+                                    AuthorLink = t.CreatedBy.Url == null? null:new Uri(t.CreatedBy.Url),
+                                    AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrl400x400??"")
+                                }
+                            }
+                        };
+                        var response = await PostToMattermost(message);
+
+                        if (response == null || response.StatusCode != HttpStatusCode.OK)
+                        {
+                            //Try again up to three times, if it fails, give up.
+                            retval += response != null
+                                ? $"\nUnable to post to Mattermost, abandoning feed.{response.StatusCode}"
+                                : "\nUnable to post to Mattermost, abandoning feed.";
+                            Console.WriteLine(retval);
+                            return;
+                        }
+                        //Console.WriteLine("Succesfully posted to Mattermost");
+                        s.LastProcessedId = t.Id;
+                        Config.Save(ConfigPath);
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         public static async Task<HttpResponseMessage> PostToMattermost(MattermostMessage message)
         {
