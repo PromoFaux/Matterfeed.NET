@@ -110,3 +110,12 @@ Do not set the interval to be too small, as you may hit the API limits imposed b
   
 ```
 
+#### Third Party Libraries
+
+This project wouldn't be anywhere near as far ahead if it wasn't for the use of some excellent nuget packages. In no particular order:
+
+[ReverseMarkdown](https://github.com/mysticmind/reversemarkdown-net) by [@mysticmind](https://github.com/mysticmind)
+
+[FeedReader](https://github.com/codehollow/FeedReader/) by [@codehollow](https://github.com/codehollow)
+
+[Tweetinvi](https://github.com/linvi/tweetinvi) by [@linvi](https://github.com/linvi)
