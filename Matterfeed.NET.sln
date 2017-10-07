@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MattermostRSS", "MattermostRSS\MattermostRSS.csproj", "{61703C09-F389-43AA-8492-9D49C10A3EEF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Matterfeed.NET", "Matterfeed.NET\Matterfeed.NET.csproj", "{61703C09-F389-43AA-8492-9D49C10A3EEF}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{4003ADB5-BDD9-4CAA-A4DF-E3AE11E8C0BF}"
 EndProject
