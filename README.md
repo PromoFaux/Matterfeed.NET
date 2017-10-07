@@ -10,11 +10,13 @@ So far, this bot will parse:
 
 ## Deployment
 Recommended - Use pre-built container:
+
 - Create a directory to store the bot's config file, e.g `/opt/bot/Matterfeed.NET` (`${YOUR_DIRECTORY}`)
 - Create the config file in `${YOUR_DIRECTORY}`. See [Example Config file](https://github.com/PromoFaux/Matterfeed.NET/blob/master/config/secrets.json.sample) for details, or read below.
 - `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ --name Matterfeed.NET promofaux/matterfeed.net`
 
-Make sure the config directory is owned by `${user}` and `${group}` so that the bot can read and write to the config file.
+
+Make sure that Docker has permission to read and write to the config directory so that it can write changes to `secrets.json`
 
 ----
 
