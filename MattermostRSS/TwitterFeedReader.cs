@@ -31,7 +31,7 @@ namespace MattermostRSS
                         var searchParameter = new SearchTweetsParameters(s.SearchTerm)
                         {
                             SearchType = SearchResultType.Mixed,
-                            MaximumNumberOfResults = 3,
+                            MaximumNumberOfResults = 100,
                             SinceId = s.LastProcessedId
                         };
 
