@@ -59,16 +59,19 @@ namespace MattermostRSS
 
     public class TwitterFeed
     {
+        public int Interval { get; set; }
         public string ConsumerKey { get; set; }
         public string ConsumerSecret { get; set; }
         public string AccessToken { get; set; }
         public string AccessTokenSecret { get; set; }
+        
 
         public List<TwitterSearch> Searches { get; set; }
     }
 
     public class TwitterSearch
     {
+        public string FeedPretext { get; set; }
         public string SearchTerm { get; set; }
         public string BotChannelOverride { get; set; } = "";
         public string BotNameOverride { get; set; } = "";
