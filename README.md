@@ -1,17 +1,20 @@
-# MattermostRSS
-Parse RSS Feeds and post them to your Mattermost server!
+# Matterfeed.NET
+Parse various feeds and post them to your mattermost server!
 
-This is a simple bot, mainly written to improve my .NET Core and Docker experience, and to replace our reliance on IFTTT over at [Pi-hole](https://github.com/pi-hole/), open sourced because it may be useful to others.
+So far, this bot will parse:
+- RSS
+- Reddit JSON Feeds
+- Twitter (Search only for now)
 
-In addition to RSS, the bot will also parse Reddit JSON feeds. 
-
-[![Docker Build Status](https://img.shields.io/docker/build/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/builds/) [![Docker Stars](https://img.shields.io/docker/stars/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/mattermostrss.svg)](https://hub.docker.com/r/promofaux/mattermostrss/) 
+[![Docker Build Status](https://img.shields.io/docker/build/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/builds/) [![Docker Stars](https://img.shields.io/docker/stars/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) 
 
 ## Deployment
 Recommended - Use pre-built container:
-- Create a directory to store the bot's config file, e.g `/opt/bot/MattermostRSS` (`${YOUR_DIRECTORY}`)
-- Create the config file in `${YOUR_DIRECTORY}`. See [Example Config file](https://github.com/PromoFaux/MattermostRSS/blob/master/config/secrets.json.sample) for details, or read below.
-- `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ --name MattermostRSS promofaux/mattermostrss`
+
+- Create a directory to store the bot's config file, e.g `/opt/bot/Matterfeed.NET` (`${YOUR_DIRECTORY}`)
+- Create the config file in `${YOUR_DIRECTORY}`. See [Example Config file](https://github.com/PromoFaux/Matterfeed.NET/blob/master/config/secrets.json.sample) for details, or read below.
+- `docker run -d --restart=always -v ${YOUR_DIRECTORY}/:/config/ --name Matterfeed.NET promofaux/matterfeed.net`
+
 
 Make sure that Docker has permission to read and write to the config directory so that it can write changes to `secrets.json`
 
@@ -19,17 +22,17 @@ Make sure that Docker has permission to read and write to the config directory s
 
 Alternative - build the container yourself:
 - Clone the repo to your machine (known from this point on as `${RepoDir}`)
-- Create the config file in: `${RepoDir}/MattermostRSS/config/` (Here you will find a `secrets.json.sample` to give you the framework of the file - More details below)
+- Create the config file in: `${RepoDir}/Matterfeed.NET/config/` (Here you will find a `secrets.json.sample` to give you the framework of the file - More details below)
 - Once the config file is created, start the bot:
 ```
-cd ${RepoDir}/MattermostRSS/
+cd ${RepoDir}/Matterfeed.NET/
 docker-compose -f docker-compose.ci.build.yml up
 docker-compose up -d --build
 ```
 
 ## Configuration
 
-[Example Config file](https://github.com/PromoFaux/MattermostRSS/blob/master/MattermostRSS/config/secrets.json.sample)
+[Example Config file](https://github.com/PromoFaux/Matterfeed.NET/blob/master/Matterfeed.NET/config/secrets.json.sample)
 
 Each `RssFeeds` element can optionally override the default Channel/Bot Name/Bot Icon using the following properties:
 
@@ -66,13 +69,9 @@ Example Config and screenshot of output:
 }
 ```
 
-![](https://i.imgur.com/nW6fRsY.png)
-
 ## Reddit JSON Feeds
 
-In addition to posting Generic RSS Feeds, I have also added the ability to parse and post messages from Reddit JSON Feeds
 
-Just add a `RedditJsonFeeds` array to your config file:
 ```JSON
     "RedditJsonFeeds": [
     {
@@ -84,3 +83,30 @@ Just add a `RedditJsonFeeds` array to your config file:
     }
     ]
 ```
+
+## Twitter Search
+
+First, you will need to [obtain twitter application credentials](https://apps.twitter.com/). Once you have those, you can add them to a `Twitterfeed` configuration object.
+
+Do not set the interval to be too small, as you may hit the API limits imposed by Twitter.
+
+```JSON
+ "TwitterFeed": {
+    "Interval": 120000,
+    "ConsumerKey": "Your Consumer Key",
+    "ConsumerSecret": "Your Consumer Secret",
+    "AccessToken": "Your Access Token",
+    "AccessTokenSecret": "Your Access Token Secret",
+    "Searches": [
+      {
+        "FeedPretext": "Twitter search: Pi-hole",
+        "SearchTerm": "\"pihole\" OR \"pi AND hole\" OR \"pi-hole\" -\"shut\" OR \"@The_Pi_Hole\" -from:@A_Pi_Hole -from:@My_Pi_Hole",
+        "BotChannelOverride": "",
+        "BotNameOverride": "Terrence the Twitter bot",
+        "BotImageOverride": "",
+        "LastProcessedId": 0
+      }
+    ]
+  
+```
+

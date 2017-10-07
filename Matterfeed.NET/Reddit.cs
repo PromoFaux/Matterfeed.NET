@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     public class RedditJson
     {
