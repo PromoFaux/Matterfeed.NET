@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Matterhook.NET.MatterhookClient;
 using Newtonsoft.Json;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     internal class RedditJsonFeedReader
     {

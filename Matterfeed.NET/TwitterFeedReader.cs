@@ -7,7 +7,7 @@ using Tweetinvi;
 using Tweetinvi.Models;
 using Tweetinvi.Parameters;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     internal class TwitterFeedReader
     {

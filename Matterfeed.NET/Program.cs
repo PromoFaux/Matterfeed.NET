@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Matterhook.NET.MatterhookClient;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     internal class Program
     {

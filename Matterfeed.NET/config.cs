@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     public class Config
     {

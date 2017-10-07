@@ -7,7 +7,7 @@ using CodeHollow.FeedReader.Feeds;
 using Matterhook.NET.MatterhookClient;
 using ReverseMarkdown;
 
-namespace MattermostRSS
+namespace Matterfeed.NET
 {
     internal class RssFeedReader
     {

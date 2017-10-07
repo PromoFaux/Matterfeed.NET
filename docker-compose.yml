@@ -1,14 +1,11 @@
 version: '3'
 
 services:
-  mattermostrss:
-    image: mattermostrss
+  matterfeed.net:
+    image: matterfeed.net
     restart: always
     volumes:
-      - ./config:/config
-    environment:
-      - PUID=0
-      - PGID=0
+      - ./config:/config    
     build:
-      context: ./MattermostRSS
+      context: ./Matterfeed.NET
       dockerfile: Dockerfile
