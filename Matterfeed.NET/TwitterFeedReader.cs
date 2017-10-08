@@ -51,7 +51,7 @@ namespace Matterfeed.NET
                                 {
                                     new MattermostAttachment
                                     {
-                                        Pretext = $"Tweet by [@{t.CreatedBy.ScreenName}](https://twitter.com/{t.CreatedBy.ScreenName}) at [{t.CreatedAt:hh:mm d MMM yyyy}]({t.Url})",
+                                        Pretext = $"Tweet by [@{t.CreatedBy.ScreenName}](https://twitter.com/{t.CreatedBy.ScreenName}) at [{t.CreatedAt:HH:mm d MMM yyyy} UTC]({t.Url})",
                                         Text = $">{t.FullText}",
                                         AuthorName = t.CreatedBy.Name ?? "",
                                         AuthorLink = new Uri($"https://twitter.com/{t.CreatedBy.ScreenName}"),
