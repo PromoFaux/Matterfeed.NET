@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Matterhook.NET.MatterhookClient;
@@ -9,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace Matterfeed.NET
 {
-    internal class RedditJsonFeedReader
+    internal static class RedditJsonFeedReader
     {
         public static async Task PeriodicRedditAsync(TimeSpan interval, List<RedditJsonFeed> redditFeeds)
         {
@@ -19,8 +20,9 @@ namespace Matterfeed.NET
                 {
                     using (var wc = new WebClient())
                     {
-                        var stuffToLog = $"\n{DateTime.Now}\nFetching Reddit URL: {feed.Url}";
-
+                        var outputString = new StringBuilder();
+                        outputString.Append($"\n{DateTime.Now}\nFetching Reddit URL: {feed.Url}");
+                        
                         string json;
                         try
                         {
@@ -28,8 +30,8 @@ namespace Matterfeed.NET
                         }
                         catch (Exception e)
                         {
-                            stuffToLog += $"\nUnable to get feed, exception: {e.Message}";
-                            Console.WriteLine(stuffToLog);
+                            outputString.Append($"\nUnable to get feed, exception: {e.Message}");
+                            Console.WriteLine(outputString.ToString());
                             return;
                         }
 
@@ -51,75 +53,62 @@ namespace Matterfeed.NET
                                 IconUrl = feed.BotImageOverride == "" ? null : new Uri(feed.BotImageOverride)
                             };
 
-                            switch (item.Kind)
+                            if (item.Kind == "t3")
                             {
-                                case "t3":
-                                    string content;
-                                    switch (item.Data.PostHint)
+                                var content = item.Data.PostHint == "link" ? $"Linked Content: {item.Data.Url}" : item.Data.Selftext;
+
+                                message.Attachments = new List<MattermostAttachment>
+                                {
+                                    new MattermostAttachment
                                     {
-                                        case "link":
-                                            content = $"Linked Content: {item.Data.Url}";
-                                            break;
-                                        default:
-                                            content = item.Data.Selftext;
-                                            break;
+                                        AuthorName = $"/u/{item.Data.Author}",
+                                        AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                        Title = item.Data.Title,
+                                        TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
+                                        Text = content,
+                                        Pretext = feed.FeedPretext
                                     }
-
-                                    message.Attachments = new List<MattermostAttachment>
+                                };
+                                message.Text =
+                                    $"#{Regex.Replace(item.Data.Title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "")}";
+                            }
+                            else if (item.Kind == "t4")
+                            {
+                                message.Attachments = new List<MattermostAttachment>
+                                {
+                                    new MattermostAttachment
                                     {
-                                        new MattermostAttachment
-                                        {
-                                            AuthorName = $"/u/{item.Data.Author}",
-                                            AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
-                                            Title = item.Data.Title,
-                                            TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
-                                            Text = content,
-                                            Pretext = feed.FeedPretext
-                                        }
-                                    };
-                                    message.Text =
-                                        $"#{Regex.Replace(item.Data.Title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "")}";
-
-                                    break;
-                                case "t4":
-
-                                    message.Attachments = new List<MattermostAttachment>
-                                    {
-                                        new MattermostAttachment
-                                        {
-                                            AuthorName = $"/u/{item.Data.Author}",
-                                            AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
-                                            Title = item.Data.Subject,
-                                            TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
-                                            Text =
-                                                item.Data.Body.Replace("](/r/",
-                                                    "](https://reddit.com/r/"), //expand /r/ markdown links
-                                            Pretext = feed.FeedPretext
-                                        }
-                                    };
-                                    break;
+                                        AuthorName = $"/u/{item.Data.Author}",
+                                        AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                        Title = item.Data.Subject,
+                                        TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
+                                        Text =
+                                            item.Data.Body.Replace("](/r/",
+                                                "](https://reddit.com/r/"), //expand /r/ markdown links
+                                        Pretext = feed.FeedPretext
+                                    }
+                                };
                             }
 
 
                             try
                             {
-                                //Task.WaitAll(Program.PostToMattermost(message));
                                 await Program.PostToMattermost(message);
                                 feed.LastProcessedItem = item.Data.Created;
                                 procCount++;
                             }
                             catch (Exception e)
                             {
-                                stuffToLog += $"\nException: {e.Message}";
+                                outputString.Append($"\nException: {e.Message}");
                             }
                         }
 
-                        stuffToLog += $"\nProcessed {procCount}/{itemCount} items.";
-                        Console.WriteLine(stuffToLog);
+                        outputString.Append($"\nProcessed {procCount}/{itemCount} items.");
+                        Console.WriteLine(outputString.ToString());
                     }
                 }
                 Program.SaveConfigSection(redditFeeds);
-                await Task.Delay(interval);
+                await Task.Delay(interval).ConfigureAwait(false);
             }
         }
     }

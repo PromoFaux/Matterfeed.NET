@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
@@ -9,7 +10,7 @@ using ReverseMarkdown;
 
 namespace Matterfeed.NET
 {
-    internal class RssFeedReader
+    internal static class RssFeedReader
     {
         internal static async Task PeriodicRssAsync(TimeSpan interval, List<RssFeed> rssFeeds)
         {
@@ -17,7 +18,8 @@ namespace Matterfeed.NET
             {
                 foreach (var feed in rssFeeds)
                 {
-                    var stuffToLog = $"\n{DateTime.Now}\nFetching RSS URL: {feed.Url}";
+                    var sbOut = new StringBuilder();
+                    sbOut.Append($"\n{DateTime.Now}\nFetching RSS URL: {feed.Url}");
 
                     Feed rssFeed;
                     try
@@ -26,21 +28,21 @@ namespace Matterfeed.NET
                     }
                     catch (Exception e)
                     {
-                        stuffToLog += $"\n Unable to get feed. Exception: {e.Message}";
-                        Console.WriteLine(stuffToLog);
+                        sbOut.Append($"\n Unable to get feed. Exception: {e.Message}");
+                        Console.WriteLine(sbOut.ToString());
                         continue;
                     }
 
                     switch (rssFeed.Type)
                     {
                         case FeedType.Atom:
-                            stuffToLog += await ProcessAtomFeed((AtomFeed)rssFeed.SpecificFeed, feed);
+                            sbOut.Append(await ProcessAtomFeed((AtomFeed)rssFeed.SpecificFeed, feed).ConfigureAwait(false));
                             break;
                         case FeedType.Rss:
                             Console.WriteLine("FeedType: RSS");
                             break;
                         case FeedType.Rss_2_0:
-                            stuffToLog += await ProcessRss20Feed((Rss20Feed)rssFeed.SpecificFeed, feed);
+                            sbOut.Append(await ProcessRss20Feed((Rss20Feed)rssFeed.SpecificFeed, feed).ConfigureAwait(false));
                             break;
                         case FeedType.Rss_0_91:
                             Console.WriteLine("FeedType: RSS 0.91");
@@ -51,25 +53,23 @@ namespace Matterfeed.NET
                         case FeedType.Rss_1_0:
                             Console.WriteLine("FeedType: RSS 1.0");
                             break;
-                        case FeedType.Unknown:
-                            Console.WriteLine("FeedType: Unknown");
-                            break;
                         default:
                             Console.WriteLine("FeedType: Unknown");
                             break;
                     }
 
-                    Console.WriteLine(stuffToLog);
+                    Console.WriteLine(sbOut.ToString());
                 }
                 Program.SaveConfigSection(rssFeeds);
-                await Task.Delay(interval);
+                await Task.Delay(interval).ConfigureAwait(false);
             }
 
         }
 
         private static async Task<string> ProcessRss20Feed(Rss20Feed feed, RssFeed rssFeed)
         {
-            var retVal = $"\nFeed Type: Rss 2.0\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}";
+            var sbRet = new StringBuilder();
+            sbRet.Append($"\nFeed Type: Rss 2.0\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}");
 
             var itemCount = feed.Items.Count;
             var procCount = 0;
@@ -117,19 +117,19 @@ namespace Matterfeed.NET
                     }
                     catch (Exception e)
                     {
-                        retVal += $"\nException: {e.Message}:\n{feed.Title}";
+                        sbRet.Append($"\nException: {e.Message}:\n{feed.Title}");
                     }
                 }
             }
 
-            retVal +=
-                $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
-            return retVal;
+            sbRet.Append($"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)");
+            return sbRet.ToString();
         }
 
         private static async Task<string> ProcessAtomFeed(AtomFeed feed, RssFeed rssFeed)
         {
-            var retval = $"\nFeed Type: Atom\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}";
+            var sbRet = new StringBuilder();
+            sbRet.Append($"\nFeed Type: Atom\nFeed Title: {feed.Title}\nGenerator: {feed.Generator}");
 
             var itemCount = feed.Items.Count;
             var procCount = 0;
@@ -176,14 +176,13 @@ namespace Matterfeed.NET
                     }
                     catch (Exception e)
                     {
-                        retval += $"\nException: {e.Message}:\n{feed.Title}";
+                        sbRet.Append($"\nException: {e.Message}:\n{feed.Title}");
                     }
                 }
             }
 
-            retval +=
-                $"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)";
-            return retval;
+            sbRet.Append($"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} previously processed or do not include a publish date)");
+            return sbRet.ToString();
         }
     }
 }

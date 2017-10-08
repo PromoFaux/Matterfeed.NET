@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Matterhook.NET.MatterhookClient;
 using Tweetinvi;
@@ -9,25 +10,26 @@ using Tweetinvi.Parameters;
 
 namespace Matterfeed.NET
 {
-    internal class TwitterFeedReader
+    internal static class TwitterFeedReader
     {
         internal static async Task PeriodicTwitterAsync(TimeSpan interval, TwitterFeed twitterFeed)
         {
             while (true)
             {
-                var retval = $"\n{DateTime.Now}\nTwitter Feed Reader.";
+                var sbOut = new StringBuilder();
+                sbOut.Append($"\n{DateTime.Now}\nTwitter Feed Reader.");
 
                 Auth.SetUserCredentials(twitterFeed.ConsumerKey, twitterFeed.ConsumerSecret,twitterFeed.AccessToken, twitterFeed.AccessTokenSecret);
 
                 var authenticatedUser = User.GetAuthenticatedUser();
-                retval += $"\nAuthenticated Twitter User: {authenticatedUser}";
+                sbOut.Append($"\nAuthenticated Twitter User: {authenticatedUser}");
                 
                 if (twitterFeed.Searches.Any())
                 {
                     foreach (var s in twitterFeed.Searches)
                     {
                         var procCount = 0;
-                        retval += $"\nProcessing Search: {s.SearchTerm}";
+                        sbOut.Append($"\nProcessing Search: {s.SearchTerm}");
                         var searchParameter = new SearchTweetsParameters(s.SearchTerm)
                         {
                             SearchType = SearchResultType.Mixed,
@@ -38,7 +40,7 @@ namespace Matterfeed.NET
                         var tweets = Search.SearchTweets(searchParameter);
 
                         var rateLimits = RateLimit.GetCurrentCredentialsRateLimits();
-                        retval +=$"\nRate Limit info: {rateLimits.SearchTweetsLimit}";
+                        sbOut.Append($"\nRate Limit info: {rateLimits.SearchTweetsLimit}");
 
                         foreach (var t in tweets.OrderBy(x => x.Id))
                         {
@@ -62,23 +64,22 @@ namespace Matterfeed.NET
 
                             try
                             {
-                                //Task.WaitAll(Program.PostToMattermost(message));
                                 await Program.PostToMattermost(message);
                                 s.LastProcessedId = t.Id;
                                 procCount++;
                             }
                             catch (Exception e)
                             {
-                                retval += $"\nException: {e.Message}";
+                                sbOut.Append($"\nException: {e.Message}");
                             }
                             
                         }
-                        retval += $"\nProcessed {procCount}/{tweets.Count()} tweets";
+                        sbOut.Append($"\nProcessed {procCount}/{tweets.Count()} tweets");
                     }
                 }
-                Console.WriteLine(retval);
+                Console.WriteLine(sbOut.ToString());
                 Program.SaveConfigSection(twitterFeed);
-                await Task.Delay(interval);
+                await Task.Delay(interval).ConfigureAwait(false);
             }
         }
     }
