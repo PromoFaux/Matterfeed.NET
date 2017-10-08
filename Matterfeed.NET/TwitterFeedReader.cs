@@ -51,12 +51,10 @@ namespace Matterfeed.NET
                                 {
                                     new MattermostAttachment
                                     {
-                                        Pretext = s.FeedPretext,
-                                        Title = "New Tweet from Search Result",
-                                        TitleLink = new Uri(t.Url ?? ""),
-                                        Text = $">{t.FullText ?? ""}",
+                                        Pretext = $"Tweet by [@{t.CreatedBy.ScreenName}](https://twitter.com/{t.CreatedBy.ScreenName}) at [{t.CreatedAt:hh:mm d MMM yyyy}]({t.Url})",
+                                        Text = $">{t.FullText}",
                                         AuthorName = t.CreatedBy.Name ?? "",
-                                        AuthorLink = t.CreatedBy.Url == null ? null : new Uri(t.CreatedBy.Url),
+                                        AuthorLink = new Uri($"https://twitter.com/{t.CreatedBy.ScreenName}"),
                                         AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrl400x400 ?? "")
                                     }
                                 }

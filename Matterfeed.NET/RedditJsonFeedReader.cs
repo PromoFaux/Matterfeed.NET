@@ -34,6 +34,8 @@ namespace Matterfeed.NET
                         }
 
                         //only get items we have not already processed
+
+
                         var items = JsonConvert.DeserializeObject<RedditJson>(json).RedditJsonData.RedditJsonChildren
                             .Where(y => y.Data.Created > feed.LastProcessedItem).OrderBy(x => x.Data.Created);
 
@@ -44,9 +46,9 @@ namespace Matterfeed.NET
                         {
                             var message = new MattermostMessage
                             {
-                                Channel = feed.BotChannelOverride == ""? null : feed.BotChannelOverride,
+                                Channel = feed.BotChannelOverride == "" ? null : feed.BotChannelOverride,
                                 Username = feed.BotNameOverride == "" ? null : feed.BotNameOverride,
-                                IconUrl = feed.BotImageOverride == ""? null:new Uri(feed.BotImageOverride)
+                                IconUrl = feed.BotImageOverride == "" ? null : new Uri(feed.BotImageOverride)
                             };
 
                             switch (item.Kind)
@@ -110,7 +112,6 @@ namespace Matterfeed.NET
                             {
                                 stuffToLog += $"\nException: {e.Message}";
                             }
-                            
                         }
 
                         stuffToLog += $"\nProcessed {procCount}/{itemCount} items.";
