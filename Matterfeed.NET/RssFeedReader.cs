@@ -77,9 +77,12 @@ namespace Matterfeed.NET
                         {
                             case FeedType.Atom:
                                 var tmpAf = (AtomFeedItem)newFeedItem.SpecificItem;
-                                content = rssFeedConfig.IncludeContent
-                                    ? tmpAf.Content ?? tmpAf.Summary ?? ""
-                                    : tmpAf.Summary ?? "";
+                                content = !rssFeedConfig.IncludeContent || tmpAf.Content == null
+                                        ? (tmpAf.Summary != null
+                                        ? (tmpAf.Summary.Length < 500 ? tmpAf.Summary : "")
+                                        : "")
+                                    : tmpAf.Content;
+                                //content = rssFeedConfig.IncludeContent ? tmpAf.Content ?? tmpAf.Summary ?? "": tmpAf.Summary ?? "";
                                 mm = MattermostMessage(rssFeedConfig, tmpAf.Title, tmpAf.Link, content,
                                     tmpAf.Author.Name);
                                 break;
@@ -91,9 +94,11 @@ namespace Matterfeed.NET
                                 break;
                             case FeedType.Rss_2_0:
                                 var tmpR2 = (Rss20FeedItem)newFeedItem.SpecificItem;
-                                content = rssFeedConfig.IncludeContent
-                                    ? tmpR2.Content ?? tmpR2.Description ?? ""
-                                    : tmpR2.Description ?? "";
+                                content = !rssFeedConfig.IncludeContent || tmpR2.Content == null
+                                    ? (tmpR2.Description != null
+                                        ? (tmpR2.Description.Length < 500 ? tmpR2.Description : "")
+                                        : "")
+                                    : tmpR2.Content;
                                 mm = MattermostMessage(rssFeedConfig, tmpR2.Title, tmpR2.Link, content,
                                     tmpR2.Author);
                                 break;
