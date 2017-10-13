@@ -113,7 +113,10 @@ namespace Matterfeed.NET
                         if (mm == null) continue;
 
                         await Program.PostToMattermost(mm);
-                        rssFeedConfig.LastProcessedItem = newFeedItem.PublishingDate;
+                        if (!rssFeedConfig.FallbackMode)
+                        {
+                            rssFeedConfig.LastProcessedItem = newFeedItem.PublishingDate;
+                        }
                         procCount++;
                     }
 
