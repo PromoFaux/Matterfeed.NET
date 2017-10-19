@@ -83,8 +83,13 @@ namespace Matterfeed.NET
                                         : "")
                                     : tmpAf.Content;
                                 //content = rssFeedConfig.IncludeContent ? tmpAf.Content ?? tmpAf.Summary ?? "": tmpAf.Summary ?? "";
-                                mm = MattermostMessage(rssFeedConfig, tmpAf.Title, tmpAf.Link, content,
+                                
+                                var link = tmpAf.Links.FirstOrDefault(x => x.Relation == "alternate");
+                                var url = link == null ? tmpAf.Link : link.Href;
+
+                                mm = MattermostMessage(rssFeedConfig, tmpAf.Title, url, content,
                                     tmpAf.Author.Name);
+                                mm.Text = tmpAf.Title;
                                 break;
                             case FeedType.Rss_0_91:
                                 break;
