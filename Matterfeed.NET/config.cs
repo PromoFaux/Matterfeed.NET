@@ -34,6 +34,7 @@ namespace Matterfeed.NET
 
     public class RssFeed
     {
+        public bool FallbackMode { get; set; } = false;
         public string FeedPretext { get; set; }
         
         public string Url { get; set; }

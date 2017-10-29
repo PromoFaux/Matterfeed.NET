@@ -8,11 +8,11 @@ using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Matterfeed.NET
 {
-    internal class Program
+    internal static class Program
     {
         private const string ConfigPath = "/config/secrets.json";
 
-        public static Config Config = new Config();
+        private static Config _config = new Config();
 
         private static void Main(string[] args)
         {
@@ -21,24 +21,24 @@ namespace Matterfeed.NET
             {
                 var allTasks = new List<Task>();
                 LoadConfig();
-                if (Config.RssFeeds != null)
+                if (_config.RssFeeds != null)
                 {
-                    var rssTask = RssFeedReader.PeriodicRssAsync(TimeSpan.FromMilliseconds(Config.BotCheckIntervalMs), Config.RssFeeds);
+                    var rssTask = RssFeedReader.PeriodicRssAsync(TimeSpan.FromMilliseconds(_config.BotCheckIntervalMs), _config.RssFeeds);
                     allTasks.Add(rssTask);
                 }
 
-                if (Config.RedditJsonFeeds != null)
+                if (_config.RedditJsonFeeds != null)
                 {
-                    var redditTask = RedditJsonFeedReader.PeriodicRedditAsync(TimeSpan.FromMilliseconds(Config.BotCheckIntervalMs), Config.RedditJsonFeeds);
+                    var redditTask = RedditJsonFeedReader.PeriodicRedditAsync(TimeSpan.FromMilliseconds(_config.BotCheckIntervalMs), _config.RedditJsonFeeds);
                     allTasks.Add(redditTask);
                 }
 
-                if (Config.TwitterFeed != null)
+                if (_config.TwitterFeed != null)
                 {
-                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(TimeSpan.FromMilliseconds(Config.TwitterFeed.Interval),Config.TwitterFeed);
+                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(TimeSpan.FromMilliseconds(_config.TwitterFeed.Interval), _config.TwitterFeed);
                     allTasks.Add(twitterTask);
                 }
-                
+
                 Task.WaitAll(allTasks.ToArray());
             }
             catch (Exception e)
@@ -51,11 +51,13 @@ namespace Matterfeed.NET
         private static void LoadConfig()
         {
             if (File.Exists(ConfigPath))
+            {
                 using (var file = File.OpenText(ConfigPath))
                 {
                     var serializer = new JsonSerializer();
-                    Config = (Config)serializer.Deserialize(file, typeof(Config));
+                    _config = (Config)serializer.Deserialize(file, typeof(Config));
                 }
+            }
             else
             {
                 Console.WriteLine("No secrets.json found! I Have no idea what to do...");
@@ -66,10 +68,10 @@ namespace Matterfeed.NET
 
         public static async Task PostToMattermost(MattermostMessage message)
         {
-            if (message.Channel == null) message.Channel = Config.BotChannelDefault;
-            if (message.Username == null) message.Username = Config.BotNameDefault;
-            if (message.IconUrl == null) message.IconUrl = new Uri(Config.BotImageDefault);
-            var mc = new MatterhookClient(Config.MattermostWebhookUrl);
+            if (message.Channel == null) { message.Channel = _config.BotChannelDefault; }
+            if (message.Username == null) { message.Username = _config.BotNameDefault; }
+            if (message.IconUrl == null) { message.IconUrl = new Uri(_config.BotImageDefault); }
+            var mc = new MatterhookClient(_config.MattermostWebhookUrl);
 
             var response = await mc.PostAsync(message);
 
@@ -84,20 +86,20 @@ namespace Matterfeed.NET
 
         internal static void SaveConfigSection(List<RedditJsonFeed> redditFeeds)
         {
-            Config.RedditJsonFeeds = redditFeeds;
-            Config.Save(ConfigPath);
+            _config.RedditJsonFeeds = redditFeeds;
+            _config.Save(ConfigPath);
         }
 
         internal static void SaveConfigSection(TwitterFeed twitterFeed)
         {
-            Config.TwitterFeed = twitterFeed;
-            Config.Save(ConfigPath);
+            _config.TwitterFeed = twitterFeed;
+            _config.Save(ConfigPath);
         }
 
         internal static void SaveConfigSection(List<RssFeed> rssFeeds)
         {
-            Config.RssFeeds = rssFeeds;
-            Config.Save(ConfigPath);
+            _config.RssFeeds = rssFeeds;
+            _config.Save(ConfigPath);
         }
     }
 }
