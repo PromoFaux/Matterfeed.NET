@@ -46,6 +46,8 @@ Each `RssFeeds` element can optionally override the default Channel/Bot Name/Bot
 
 `LastProcessedItem` is automatically added and saved once the bot has succesfully posted it to Mattermost
 
+`FallbackMode` will store a copy of the feed and use that to compare against new feed grabs. This is particularly useful when feeds don't use the PubDate field properly.
+
 
 Example Config and screenshot of output:
 
@@ -58,6 +60,7 @@ Example Config and screenshot of output:
     "BotImageDefault": "https://whatever.com/image.jpg",
     "RssFeeds":[  
     {
+        "FallbackMode": false
         "FeedPretext": "Schneier on Security",
         "Url": "https://www.schneier.com/blog/atom.xml",
         "BotChannelOverride": "",
