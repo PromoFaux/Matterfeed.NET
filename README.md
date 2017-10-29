@@ -6,7 +6,7 @@ So far, this bot will parse:
 - Reddit JSON Feeds
 - Twitter (Search only for now)
 
-[![Docker Build Status](https://img.shields.io/docker/build/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/builds/) [![Docker Stars](https://img.shields.io/docker/stars/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) 
+[![Docker Stars](https://img.shields.io/docker/stars/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) [![Docker Pulls](https://img.shields.io/docker/pulls/promofaux/matterfeed.net.svg)](https://hub.docker.com/r/promofaux/matterfeed.net/) 
 
 ## Deployment
 Recommended - Use pre-built container:
