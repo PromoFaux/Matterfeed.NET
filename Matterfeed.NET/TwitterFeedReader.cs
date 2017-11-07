@@ -16,70 +16,112 @@ namespace Matterfeed.NET
         {
             while (true)
             {
+                var logit = false;
                 var sbOut = new StringBuilder();
-                sbOut.Append($"\n{DateTime.Now}\nTwitter Feed Reader.");
-
-                Auth.SetUserCredentials(twitterFeed.ConsumerKey, twitterFeed.ConsumerSecret,twitterFeed.AccessToken, twitterFeed.AccessTokenSecret);
-
-                var authenticatedUser = User.GetAuthenticatedUser();
-                sbOut.Append($"\nAuthenticated Twitter User: {authenticatedUser}");
-                
-                if (twitterFeed.Searches.Any())
+                try
                 {
-                    foreach (var s in twitterFeed.Searches)
+                   
+                    sbOut.Append($"\n{DateTime.Now}\nTwitter Feed Reader.");
+
+                    Auth.SetUserCredentials(twitterFeed.ConsumerKey, twitterFeed.ConsumerSecret, twitterFeed.AccessToken, twitterFeed.AccessTokenSecret);
+
+                    //Check the authentication tokens are correct by getting the authenticated username
+                    var authenticatedUser = User.GetAuthenticatedUser();
+                    if (authenticatedUser != null)
                     {
-                        var procCount = 0;
-                        sbOut.Append($"\nProcessing Search: {s.SearchTerm}");
-                        var searchParameter = new SearchTweetsParameters(s.SearchTerm)
-                        {
-                            SearchType = SearchResultType.Mixed,
-                            MaximumNumberOfResults = 100,
-                            SinceId = s.LastProcessedId
-                        };
+                        sbOut.Append($"\nAuthenticated Twitter User: {authenticatedUser}");
 
-                        var tweets = Search.SearchTweets(searchParameter);
-
+                        //Get the rate limits for the authenticated user
                         var rateLimits = RateLimit.GetCurrentCredentialsRateLimits();
-                        sbOut.Append($"\nRate Limit info: {rateLimits.SearchTweetsLimit}");
 
-                        foreach (var t in tweets.OrderBy(x => x.Id))
+                        if (twitterFeed.Searches.Any())
                         {
-                            var message = new MattermostMessage
+                            if (rateLimits.SearchTweetsLimit.Remaining > 0)
                             {
-                                Channel = s.BotChannelOverride ==""?null:s.BotChannelOverride,
-                                Username =s.BotNameOverride ==""? null:s.BotNameOverride,
-                                IconUrl = s.BotImageOverride == "" ? null : new Uri(s.BotImageOverride),
-                                Attachments = new List<MattermostAttachment>
+                                sbOut.Append($"\nRate Limit info: {rateLimits.SearchTweetsLimit}");
+
+                                foreach (var s in twitterFeed.Searches)
                                 {
-                                    new MattermostAttachment
+                                    sbOut.Append($"\nProcessing Search: {s.SearchTerm}");
+                                    var searchParameter = new SearchTweetsParameters(s.SearchTerm)
                                     {
-                                        Pretext = $"Tweet by [@{t.CreatedBy.ScreenName}](https://twitter.com/{t.CreatedBy.ScreenName}) at [{t.CreatedAt:HH:mm d MMM yyyy} UTC]({t.Url})",
-                                        Text = $">{t.FullText}",
-                                        AuthorName = t.CreatedBy.Name ?? "",
-                                        AuthorLink = new Uri($"https://twitter.com/{t.CreatedBy.ScreenName}"),
-                                        AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrl400x400 ?? "")
+                                        SearchType = SearchResultType.Mixed,
+                                        MaximumNumberOfResults = 100,
+                                        SinceId = s.LastProcessedId
+                                    };
+
+                                    var tweets = Search.SearchTweets(searchParameter).ToList();
+                                    
+                                    foreach (var t in tweets.OrderBy(x => x.Id))
+                                    {
+                                        var message = new MattermostMessage
+                                        {
+                                            Channel = s.BotChannelOverride == "" ? null : s.BotChannelOverride,
+                                            Username = s.BotNameOverride == "" ? null : s.BotNameOverride,
+                                            IconUrl = s.BotImageOverride == "" ? null : new Uri(s.BotImageOverride),
+                                            Attachments = new List<MattermostAttachment>
+                                            {
+                                                new MattermostAttachment
+                                                {
+                                                    Pretext =
+                                                        $"Tweet by [@{t.CreatedBy.ScreenName}](https://twitter.com/{t.CreatedBy.ScreenName}) at [{t.CreatedAt:HH:mm d MMM yyyy} UTC]({t.Url})",
+                                                    Text = $">{t.FullText}",
+                                                    AuthorName = t.CreatedBy.Name ?? "",
+                                                    AuthorLink =
+                                                        new Uri($"https://twitter.com/{t.CreatedBy.ScreenName}"),
+                                                    AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrl400x400 ?? "")
+                                                }
+                                            }
+                                        };
+
+                                        try
+                                        {
+                                            await Program.PostToMattermost(message);
+                                            s.LastProcessedId = t.Id;
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            sbOut.Append($"\nException: {e.Message}");
+                                            logit = true;
+                                            //assume there is an issue with Mattermost, log the error and fall out of the foreach
+                                            break;
+                                        }
                                     }
                                 }
-                            };
-
-                            try
-                            {
-                                await Program.PostToMattermost(message);
-                                s.LastProcessedId = t.Id;
-                                procCount++;
                             }
-                            catch (Exception e)
+                            else
                             {
-                                sbOut.Append($"\nException: {e.Message}");
+                                sbOut.Append($"\nERROR: Search Rate limit hit! Limit resets at {rateLimits.SearchTweetsLimit.ResetDateTime}");
+                                logit = true;
                             }
-                            
                         }
-                        sbOut.Append($"\nProcessed {procCount}/{tweets.Count()} tweets");
+                        else
+                        {
+                            sbOut.Append($"\nERROR: No search terms defined");
+                            logit = true;
+                        }
                     }
+                    else
+                    {
+                        sbOut.Append($"\nERROR: Not authenticated! Check credentials.");
+                        logit = true;
+                    }
+
+                    if (logit)
+                    {
+                        Console.WriteLine(sbOut.ToString());
+                    }
+
+                    Program.SaveConfigSection(twitterFeed);
+                    await Task.Delay(interval).ConfigureAwait(false);
                 }
-                Console.WriteLine(sbOut.ToString());
-                Program.SaveConfigSection(twitterFeed);
-                await Task.Delay(interval).ConfigureAwait(false);
+                catch (Exception e)
+                {
+                    sbOut.Append($"\nException: {e}");
+                    Console.WriteLine(sbOut.ToString());
+                    await Task.Delay(interval).ConfigureAwait(false);
+                }
+               
             }
         }
     }
