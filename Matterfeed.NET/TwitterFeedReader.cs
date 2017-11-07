@@ -12,7 +12,7 @@ namespace Matterfeed.NET
 {
     internal static class TwitterFeedReader
     {
-        internal static async Task PeriodicTwitterAsync(TimeSpan interval, TwitterFeed twitterFeed)
+        internal static async Task PeriodicTwitterAsync(TwitterFeed twitterFeed)
         {
             while (true)
             {
@@ -87,6 +87,12 @@ namespace Matterfeed.NET
                                             break;
                                         }
                                     }
+                                    if (logit)
+                                    {
+                                        break;
+                                    }
+
+                                    sbOut.Append($"\nProcessed Search: {s.SearchTerm}");
                                 }
                             }
                             else
@@ -113,13 +119,13 @@ namespace Matterfeed.NET
                     }
 
                     Program.SaveConfigSection(twitterFeed);
-                    await Task.Delay(interval).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeed.Interval)).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
                     sbOut.Append($"\nException: {e}");
                     Console.WriteLine(sbOut.ToString());
-                    await Task.Delay(interval).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeed.Interval)).ConfigureAwait(false);
                 }
                
             }

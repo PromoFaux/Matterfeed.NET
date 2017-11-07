@@ -21,9 +21,9 @@ namespace Matterfeed.NET
             {
                 var allTasks = new List<Task>();
                 LoadConfig();
-                if (_config.RssFeeds != null)
+                if (_config.RssFeedConfig != null)
                 {
-                    var rssTask = RssFeedReader.PeriodicRssAsync(TimeSpan.FromMilliseconds(_config.BotCheckIntervalMs), _config.RssFeeds);
+                    var rssTask = RssFeedReader.PeriodicRssAsync(_config.RssFeedConfig);
                     allTasks.Add(rssTask);
                 }
 
@@ -35,7 +35,7 @@ namespace Matterfeed.NET
 
                 if (_config.TwitterFeed != null)
                 {
-                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(TimeSpan.FromMilliseconds(_config.TwitterFeed.Interval), _config.TwitterFeed);
+                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(_config.TwitterFeed);
                     allTasks.Add(twitterTask);
                 }
 
@@ -96,9 +96,9 @@ namespace Matterfeed.NET
             _config.Save(ConfigPath);
         }
 
-        internal static void SaveConfigSection(List<RssFeed> rssFeeds)
+        internal static void SaveConfigSection(RssFeedConfig rssFeedConfig)
         {
-            _config.RssFeeds = rssFeeds;
+            _config.RssFeedConfig = rssFeedConfig;
             _config.Save(ConfigPath);
         }
     }

@@ -12,50 +12,72 @@ namespace Matterfeed.NET
 {
     internal static class RssFeedReader
     {
-        internal static async Task PeriodicRssAsync(TimeSpan interval, List<RssFeed> rssFeeds)
+        internal static async Task PeriodicRssAsync(RssFeedConfig rssFeedConfig)
         {
             while (true)
             {
-                foreach (var rssFeedConfig in rssFeeds)
+                var logit = false;
+                var sbOut = new StringBuilder();
+
+                foreach (var rssFeed in rssFeedConfig.RssFeeds)
                 {
-                    var sbOut = new StringBuilder();
-                    sbOut.Append($"\n{DateTime.Now}\nFetching RSS URL: {rssFeedConfig.Url}");
+                    sbOut.Append($"\n{DateTime.Now}\nFetching RSS URL: {rssFeed.Url}");
 
                     Feed newFeed;
 
                     //Get Feed from URL
                     try
                     {
-                        newFeed = await FeedReader.ReadAsync(rssFeedConfig.Url);
+                        newFeed = await FeedReader.ReadAsync(rssFeed.Url);
                     }
                     catch (Exception e)
                     {
-                        sbOut.Append($"\n Unable to get newFeed. Exception: {e.Message}");
+                        sbOut.Append($"\n ERROR: Unable to get Feed. Exception: {e.Message}");
                         Console.WriteLine(sbOut.ToString());
+                        //unable to get this feed, move onto next feed.
                         continue;
                     }
 
                     sbOut.Append($"\nFeed Title: {newFeed.Title}");
 
-                    var itemCount = newFeed.Items.Count;
-                    var procCount = 0;
+                    switch (newFeed.Type)
+                    {
+                        case FeedType.Atom:
+                            break;
+                        case FeedType.Rss_2_0:
+                            break;
+                        default:
+                            sbOut.Append($"\nERROR: Unhandled Feed type: {newFeed.Type}");
+                            Console.WriteLine(sbOut.ToString());
+                            continue;
+                    }
 
                     //Fallback mode is for feeds that don't properly use published date.
                     //If we're in fallback mode, then check for previously saved copy of feed, load it into memory and then overwrite it with newest copy
                     Feed oldFeed = null;
-                    if (rssFeedConfig.FallbackMode)
+                    if (rssFeed.FallbackMode)
                     {
-                        var filename = $"/config/{newFeed.Title.Replace(" ", "_")}.xml";
-
-                        sbOut.Append($"\nFallback Mode Enabled, checking for {filename}");
-                        if (System.IO.File.Exists(filename))
+                        try
                         {
-                            sbOut.Append($"\nLoading old feed from {filename}");
-                            oldFeed = FeedReader.ReadFromFile(filename);
-                        }
+                            var filename = $"/config/{newFeed.Title.Replace(" ", "_")}.xml";
 
-                        sbOut.Append($"\nWriting new feed to {filename}");
-                        System.IO.File.WriteAllText(filename, newFeed.OriginalDocument);
+                            sbOut.Append($"\nFallback Mode Enabled, checking for {filename}");
+                            if (System.IO.File.Exists(filename))
+                            {
+                                sbOut.Append($"\nLoading old feed from {filename}");
+                                oldFeed = FeedReader.ReadFromFile(filename);
+                            }
+
+                            sbOut.Append($"\nWriting new feed to {filename}");
+                            System.IO.File.WriteAllText(filename, newFeed.OriginalDocument);
+                        }
+                        catch (Exception e)
+                        {
+                            sbOut.Append($"\nERROR: Fallback mode failed ({e.Message}");
+                            Console.WriteLine(sbOut.ToString());
+                            continue;
+                        }
+                        
                     }
 
                     //Loop through new items just downloaded
@@ -68,73 +90,70 @@ namespace Matterfeed.NET
                             dupeItems = oldFeed.SpecificFeed.Items.Where(x => x.Title == newFeedItem.Title);
                         }
                         
-                        if (rssFeedConfig.FallbackMode && (dupeItems!=null && dupeItems.Any())) continue; //Item exists in old file
-                        if (!rssFeedConfig.FallbackMode && (newFeedItem.PublishingDate <= rssFeedConfig.LastProcessedItem || newFeedItem.PublishingDate == null)) continue; // Item was previously processed or has no published date
+                        if (rssFeed.FallbackMode && (dupeItems!=null && dupeItems.Any())) continue; //Item exists in old file
+                        if (!rssFeed.FallbackMode && (newFeedItem.PublishingDate <= rssFeed.LastProcessedItem || newFeedItem.PublishingDate == null)) continue; // Item was previously processed or has no published date
 
-                        var content = "";
+                        string content;
                         MattermostMessage mm = null;
-                        switch (newFeed.Type)
-                        {
-                            case FeedType.Atom:
-                                var tmpAf = (AtomFeedItem)newFeedItem.SpecificItem;
-                                content = !rssFeedConfig.IncludeContent || tmpAf.Content == null
-                                        ? (tmpAf.Summary != null
-                                        ? (tmpAf.Summary.Length < 500 ? tmpAf.Summary : "")
-                                        : "")
-                                    : tmpAf.Content;
-                                //content = rssFeedConfig.IncludeContent ? tmpAf.Content ?? tmpAf.Summary ?? "": tmpAf.Summary ?? "";
-                                
-                                var link = tmpAf.Links.FirstOrDefault(x => x.Relation == "alternate");
-                                var url = link == null ? tmpAf.Link : link.Href;
 
-                                mm = MattermostMessage(rssFeedConfig, tmpAf.Title, url, content,
-                                    tmpAf.Author.Name);
-                                mm.Text = tmpAf.Title;
-                                break;
-                            case FeedType.Rss_0_91:
-                                break;
-                            case FeedType.Rss_0_92:
-                                break;
-                            case FeedType.Rss_1_0:
-                                break;
-                            case FeedType.Rss_2_0:
-                                var tmpR2 = (Rss20FeedItem)newFeedItem.SpecificItem;
-                                content = !rssFeedConfig.IncludeContent || tmpR2.Content == null
-                                    ? (tmpR2.Description != null
-                                        ? (tmpR2.Description.Length < 500 ? tmpR2.Description : "")
-                                        : "")
-                                    : tmpR2.Content;
-                                mm = MattermostMessage(rssFeedConfig, tmpR2.Title, tmpR2.Link, content,
-                                    tmpR2.Author);
-                                break;
-                            case FeedType.Rss:
-                                break;
-                            case FeedType.Unknown:
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException();
+                        //Get contents of Mattermost message depending on feed type. 
+                        if (newFeed.Type == FeedType.Atom)
+                        {
+                            //Process Atom Feed Item
+                            var tmpAf = (AtomFeedItem) newFeedItem.SpecificItem;
+                            content = !rssFeed.IncludeContent || tmpAf.Content == null
+                                ? (tmpAf.Summary != null
+                                    ? (tmpAf.Summary.Length < 500 ? tmpAf.Summary : "")
+                                    : "")
+                                : tmpAf.Content;
+
+                            var link = tmpAf.Links.FirstOrDefault(x => x.Relation == "alternate");
+                            var url = link == null ? tmpAf.Link : link.Href;
+
+                            mm = MattermostMessage(rssFeed, tmpAf.Title, url, content,
+                                tmpAf.Author.Name);
+                            mm.Text = tmpAf.Title;
+                        }
+                        else if (newFeed.Type == FeedType.Rss_2_0)
+                        {
+                            //Process RSS 2.0 Item
+                            var tmpR2 = (Rss20FeedItem) newFeedItem.SpecificItem;
+                            content = !rssFeed.IncludeContent || tmpR2.Content == null
+                                ? (tmpR2.Description != null
+                                    ? (tmpR2.Description.Length < 500 ? tmpR2.Description : "")
+                                    : "")
+                                : tmpR2.Content;
+                            mm = MattermostMessage(rssFeed, tmpR2.Title, tmpR2.Link, content,
+                                tmpR2.Author);
                         }
 
-                        if (mm == null) continue;
+                        if (mm == null) continue; //Shouldn't be, but let's try and catch it anyway
 
-                        await Program.PostToMattermost(mm);
-                        if (!rssFeedConfig.FallbackMode)
+                        try
                         {
-                            rssFeedConfig.LastProcessedItem = newFeedItem.PublishingDate;
+                            await Program.PostToMattermost(mm);
+                            if (!rssFeed.FallbackMode)
+                            {
+                                rssFeed.LastProcessedItem = newFeedItem.PublishingDate;
+                            }
                         }
-                        procCount++;
+                        catch (Exception e)
+                        {
+                            sbOut.Append($"Exception: {e.Message}");
+                            logit = true;
+                            break;
+                        }
+                        
                     }
 
-                    var tmp = rssFeedConfig.FallbackMode
-                        ? "exist in file from previous run"
-                        : "previously processed or have no publish date";
-                    sbOut.Append($"\nProcessed {procCount}/{itemCount} items. ({itemCount - procCount} {tmp})");
-
+                    if (!logit) continue;
                     Console.WriteLine(sbOut.ToString());
+                    break; //abandon rss processing until the next processing time
                 }
+
                 //update config file with lastprocesed date
-                Program.SaveConfigSection(rssFeeds);
-                await Task.Delay(interval).ConfigureAwait(false);
+                Program.SaveConfigSection(rssFeedConfig);
+                await Task.Delay(TimeSpan.FromMilliseconds(rssFeedConfig.Interval)).ConfigureAwait(false);
             }
 
         }

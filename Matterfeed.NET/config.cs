@@ -16,7 +16,7 @@ namespace Matterfeed.NET
         public string BotNameDefault { get; set; } = "";
         public string BotImageDefault { get; set; } = "";
 
-        public List<RssFeed> RssFeeds { get; set; }
+        public RssFeedConfig RssFeedConfig { get; set; }
         public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
         public TwitterFeed TwitterFeed { get; set; }
 
@@ -30,6 +30,13 @@ namespace Matterfeed.NET
                 serializer.Serialize(file, this);
             }
         }
+    }
+
+    public class RssFeedConfig
+    {
+        public int Interval { get; set; } = 300000;
+
+        public List<RssFeed> RssFeeds { get; set; }
     }
 
     public class RssFeed
