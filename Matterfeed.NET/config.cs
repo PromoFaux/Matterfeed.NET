@@ -7,9 +7,6 @@ namespace Matterfeed.NET
 {
     public class Config
     {
-       
-
-        public int BotCheckIntervalMs { get; set; } = 30000; //Default to 30 seconds, but configure it in the secrets file
         public string MattermostWebhookUrl { get; set; } = "";
 
         public string BotChannelDefault { get; set; } = "";
@@ -26,7 +23,7 @@ namespace Matterfeed.NET
             // serialize JSON directly to a file
             using (var file = File.CreateText(path))
             {
-                var serializer = new JsonSerializer {Formatting = Formatting.Indented};
+                var serializer = new JsonSerializer { Formatting = Formatting.Indented };
                 serializer.Serialize(file, this);
             }
         }
@@ -43,7 +40,7 @@ namespace Matterfeed.NET
     {
         public bool FallbackMode { get; set; } = false;
         public string FeedPretext { get; set; }
-        
+
         public string Url { get; set; }
 
         public string BotChannelOverride { get; set; } = "";
@@ -51,7 +48,7 @@ namespace Matterfeed.NET
         public string BotImageOverride { get; set; } = "";
 
         public bool IncludeContent { get; set; } = true;
-       
+
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
@@ -78,7 +75,7 @@ namespace Matterfeed.NET
         public string ConsumerSecret { get; set; }
         public string AccessToken { get; set; }
         public string AccessTokenSecret { get; set; }
-        
+
 
         public List<TwitterSearch> Searches { get; set; }
     }
