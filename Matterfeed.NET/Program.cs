@@ -27,9 +27,9 @@ namespace Matterfeed.NET
                     allTasks.Add(rssTask);
                 }
 
-                if (_config.RedditJsonFeeds != null)
+                if (_config.RedditFeedConfig != null)
                 {
-                    var redditTask = RedditJsonFeedReader.PeriodicRedditAsync(TimeSpan.FromMilliseconds(_config.BotCheckIntervalMs), _config.RedditJsonFeeds);
+                    var redditTask = RedditJsonFeedReader.PeriodicRedditAsync(_config.RedditFeedConfig);
                     allTasks.Add(redditTask);
                 }
 
@@ -84,9 +84,9 @@ namespace Matterfeed.NET
 
         }
 
-        internal static void SaveConfigSection(List<RedditJsonFeed> redditFeeds)
+        internal static void SaveConfigSection(RedditFeedConfig redditFeedConfig)
         {
-            _config.RedditJsonFeeds = redditFeeds;
+            _config.RedditFeedConfig = redditFeedConfig;
             _config.Save(ConfigPath);
         }
 

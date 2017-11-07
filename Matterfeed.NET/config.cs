@@ -17,7 +17,7 @@ namespace Matterfeed.NET
         public string BotImageDefault { get; set; } = "";
 
         public RssFeedConfig RssFeedConfig { get; set; }
-        public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
+        public RedditFeedConfig RedditFeedConfig { get; set; }
         public TwitterFeedConfig TwitterFeedConfig { get; set; }
 
 
@@ -55,6 +55,12 @@ namespace Matterfeed.NET
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
+    public class RedditFeedConfig
+    {
+        public int Interval { get; set; } = 60000;
+        public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
+    }
+
     public class RedditJsonFeed
     {
         public string FeedPretext { get; set; }
@@ -67,7 +73,7 @@ namespace Matterfeed.NET
 
     public class TwitterFeedConfig
     {
-        public int Interval { get; set; }
+        public int Interval { get; set; } = 60000;
         public string ConsumerKey { get; set; }
         public string ConsumerSecret { get; set; }
         public string AccessToken { get; set; }

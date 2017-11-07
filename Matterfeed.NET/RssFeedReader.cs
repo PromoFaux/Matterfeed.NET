@@ -16,11 +16,10 @@ namespace Matterfeed.NET
         {
             while (true)
             {
-                var logit = false;
-                var sbOut = new StringBuilder();
-
                 foreach (var rssFeed in rssFeedConfig.RssFeeds)
                 {
+                    var logit = false;
+                    var sbOut = new StringBuilder();
                     sbOut.Append($"\n{DateTime.Now}\nFetching RSS URL: {rssFeed.Url}");
 
                     Feed newFeed;
@@ -77,11 +76,11 @@ namespace Matterfeed.NET
                             Console.WriteLine(sbOut.ToString());
                             continue;
                         }
-                        
+
                     }
 
                     //Loop through new items just downloaded
-                    foreach (var newFeedItem in newFeed.Items.OrderBy(x=>x.PublishingDate))
+                    foreach (var newFeedItem in newFeed.Items.OrderBy(x => x.PublishingDate))
                     {
                         //if we're in fallback mode and we have an old feed, does the new item exist in that?
                         IEnumerable<BaseFeedItem> dupeItems = null;
@@ -89,9 +88,13 @@ namespace Matterfeed.NET
                         {
                             dupeItems = oldFeed.SpecificFeed.Items.Where(x => x.Title == newFeedItem.Title);
                         }
-                        
-                        if (rssFeed.FallbackMode && (dupeItems!=null && dupeItems.Any())) continue; //Item exists in old file
-                        if (!rssFeed.FallbackMode && (newFeedItem.PublishingDate <= rssFeed.LastProcessedItem || newFeedItem.PublishingDate == null)) continue; // Item was previously processed or has no published date
+
+                        if (rssFeed.FallbackMode && (dupeItems != null && dupeItems.Any()))
+                            continue; //Item exists in old file
+                        if (!rssFeed.FallbackMode &&
+                            (newFeedItem.PublishingDate <= rssFeed.LastProcessedItem ||
+                             newFeedItem.PublishingDate == null))
+                            continue; // Item was previously processed or has no published date
 
                         string content;
                         MattermostMessage mm = null;
@@ -100,7 +103,7 @@ namespace Matterfeed.NET
                         if (newFeed.Type == FeedType.Atom)
                         {
                             //Process Atom Feed Item
-                            var tmpAf = (AtomFeedItem) newFeedItem.SpecificItem;
+                            var tmpAf = (AtomFeedItem)newFeedItem.SpecificItem;
                             content = !rssFeed.IncludeContent || tmpAf.Content == null
                                 ? (tmpAf.Summary != null
                                     ? (tmpAf.Summary.Length < 500 ? tmpAf.Summary : "")
@@ -117,7 +120,7 @@ namespace Matterfeed.NET
                         else if (newFeed.Type == FeedType.Rss_2_0)
                         {
                             //Process RSS 2.0 Item
-                            var tmpR2 = (Rss20FeedItem) newFeedItem.SpecificItem;
+                            var tmpR2 = (Rss20FeedItem)newFeedItem.SpecificItem;
                             content = !rssFeed.IncludeContent || tmpR2.Content == null
                                 ? (tmpR2.Description != null
                                     ? (tmpR2.Description.Length < 500 ? tmpR2.Description : "")
@@ -143,13 +146,15 @@ namespace Matterfeed.NET
                             logit = true;
                             break;
                         }
-                        
+
                     }
 
                     if (!logit) continue;
                     Console.WriteLine(sbOut.ToString());
                     break; //abandon rss processing until the next processing time
                 }
+
+
 
                 //update config file with lastprocesed date
                 Program.SaveConfigSection(rssFeedConfig);
@@ -182,6 +187,6 @@ namespace Matterfeed.NET
             };
             return message;
         }
-      
+
     }
 }

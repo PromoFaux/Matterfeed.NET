@@ -12,16 +12,17 @@ namespace Matterfeed.NET
 {
     internal static class RedditJsonFeedReader
     {
-        public static async Task PeriodicRedditAsync(TimeSpan interval, List<RedditJsonFeed> redditFeeds)
+        public static async Task PeriodicRedditAsync(RedditFeedConfig reddifFeedConfig)
         {
             while (true)
             {
-                foreach (var feed in redditFeeds)
+                foreach (var feed in reddifFeedConfig.RedditJsonFeeds)
                 {
                     using (var wc = new WebClient())
                     {
-                        var outputString = new StringBuilder();
-                        outputString.Append($"\n{DateTime.Now}\nFetching Reddit URL: {feed.Url}");
+                        var logit = false;
+                        var sbOut = new StringBuilder();
+                        sbOut.Append($"\n{DateTime.Now}\nFetching Reddit URL: {feed.Url}");
                         
                         string json;
                         try
@@ -30,8 +31,8 @@ namespace Matterfeed.NET
                         }
                         catch (Exception e)
                         {
-                            outputString.Append($"\nUnable to get feed, exception: {e.Message}");
-                            Console.WriteLine(outputString.ToString());
+                            sbOut.Append($"\nERROR: Unable to get feed, exception: {e.Message}");
+                            Console.WriteLine(sbOut.ToString());
                             return;
                         }
 
@@ -40,9 +41,6 @@ namespace Matterfeed.NET
 
                         var items = JsonConvert.DeserializeObject<RedditJson>(json).RedditJsonData.RedditJsonChildren
                             .Where(y => y.Data.Created > feed.LastProcessedItem).OrderBy(x => x.Data.Created);
-
-                        var itemCount = items.Count();
-                        var procCount = 0;
 
                         foreach (var item in items)
                         {
@@ -95,20 +93,23 @@ namespace Matterfeed.NET
                             {
                                 await Program.PostToMattermost(message);
                                 feed.LastProcessedItem = item.Data.Created;
-                                procCount++;
                             }
                             catch (Exception e)
                             {
-                                outputString.Append($"\nException: {e.Message}");
+                                sbOut.Append($"\nException: {e.Message}");
+                                logit = true;
+                                break;
+
                             }
                         }
 
-                        outputString.Append($"\nProcessed {procCount}/{itemCount} items.");
-                        Console.WriteLine(outputString.ToString());
+                        if(!logit) continue;
+                        Console.WriteLine(sbOut.ToString());
+                        break;
                     }
                 }
-                Program.SaveConfigSection(redditFeeds);
-                await Task.Delay(interval).ConfigureAwait(false);
+                Program.SaveConfigSection(reddifFeedConfig);
+                await Task.Delay(TimeSpan.FromMilliseconds(reddifFeedConfig.Interval)).ConfigureAwait(false);
             }
         }
     }
