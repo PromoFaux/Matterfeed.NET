@@ -12,7 +12,7 @@ namespace Matterfeed.NET
 {
     internal static class TwitterFeedReader
     {
-        internal static async Task PeriodicTwitterAsync(TwitterFeed twitterFeed)
+        internal static async Task PeriodicTwitterAsync(TwitterFeedConfig twitterFeedConfig)
         {
             while (true)
             {
@@ -23,7 +23,7 @@ namespace Matterfeed.NET
                    
                     sbOut.Append($"\n{DateTime.Now}\nTwitter Feed Reader.");
 
-                    Auth.SetUserCredentials(twitterFeed.ConsumerKey, twitterFeed.ConsumerSecret, twitterFeed.AccessToken, twitterFeed.AccessTokenSecret);
+                    Auth.SetUserCredentials(twitterFeedConfig.ConsumerKey, twitterFeedConfig.ConsumerSecret, twitterFeedConfig.AccessToken, twitterFeedConfig.AccessTokenSecret);
 
                     //Check the authentication tokens are correct by getting the authenticated username
                     var authenticatedUser = User.GetAuthenticatedUser();
@@ -34,13 +34,13 @@ namespace Matterfeed.NET
                         //Get the rate limits for the authenticated user
                         var rateLimits = RateLimit.GetCurrentCredentialsRateLimits();
 
-                        if (twitterFeed.Searches.Any())
+                        if (twitterFeedConfig.Searches.Any())
                         {
                             if (rateLimits.SearchTweetsLimit.Remaining > 0)
                             {
                                 sbOut.Append($"\nRate Limit info: {rateLimits.SearchTweetsLimit}");
 
-                                foreach (var s in twitterFeed.Searches)
+                                foreach (var s in twitterFeedConfig.Searches)
                                 {
                                     sbOut.Append($"\nProcessing Search: {s.SearchTerm}");
                                     var searchParameter = new SearchTweetsParameters(s.SearchTerm)
@@ -118,14 +118,14 @@ namespace Matterfeed.NET
                         Console.WriteLine(sbOut.ToString());
                     }
 
-                    Program.SaveConfigSection(twitterFeed);
-                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeed.Interval)).ConfigureAwait(false);
+                    Program.SaveConfigSection(twitterFeedConfig);
+                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeedConfig.Interval)).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
                     sbOut.Append($"\nException: {e}");
                     Console.WriteLine(sbOut.ToString());
-                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeed.Interval)).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(twitterFeedConfig.Interval)).ConfigureAwait(false);
                 }
                
             }

@@ -33,9 +33,9 @@ namespace Matterfeed.NET
                     allTasks.Add(redditTask);
                 }
 
-                if (_config.TwitterFeed != null)
+                if (_config.TwitterFeedConfig != null)
                 {
-                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(_config.TwitterFeed);
+                    var twitterTask = TwitterFeedReader.PeriodicTwitterAsync(_config.TwitterFeedConfig);
                     allTasks.Add(twitterTask);
                 }
 
@@ -90,9 +90,9 @@ namespace Matterfeed.NET
             _config.Save(ConfigPath);
         }
 
-        internal static void SaveConfigSection(TwitterFeed twitterFeed)
+        internal static void SaveConfigSection(TwitterFeedConfig twitterFeedConfig)
         {
-            _config.TwitterFeed = twitterFeed;
+            _config.TwitterFeedConfig = twitterFeedConfig;
             _config.Save(ConfigPath);
         }
 

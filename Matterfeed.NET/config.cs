@@ -18,7 +18,7 @@ namespace Matterfeed.NET
 
         public RssFeedConfig RssFeedConfig { get; set; }
         public List<RedditJsonFeed> RedditJsonFeeds { get; set; }
-        public TwitterFeed TwitterFeed { get; set; }
+        public TwitterFeedConfig TwitterFeedConfig { get; set; }
 
 
         public void Save(string path)
@@ -65,7 +65,7 @@ namespace Matterfeed.NET
         public DateTime? LastProcessedItem { get; set; } = new DateTime();
     }
 
-    public class TwitterFeed
+    public class TwitterFeedConfig
     {
         public int Interval { get; set; }
         public string ConsumerKey { get; set; }
