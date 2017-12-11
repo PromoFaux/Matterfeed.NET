@@ -51,41 +51,47 @@ namespace Matterfeed.NET
                                 IconUrl = feed.BotImageOverride == "" ? null : new Uri(feed.BotImageOverride)
                             };
 
-                            if (item.Kind == "t3")
-                            {
-                                var content = item.Data.PostHint == "link" ? $"Linked Content: {item.Data.Url}" : item.Data.Selftext;
 
-                                message.Attachments = new List<MattermostAttachment>
-                                {
-                                    new MattermostAttachment
-                                    {
-                                        AuthorName = $"/u/{item.Data.Author}",
-                                        AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
-                                        Title = item.Data.Title,
-                                        TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
-                                        Text = content,
-                                        Pretext = feed.FeedPretext
-                                    }
-                                };
-                                message.Text =
-                                    $"#{Regex.Replace(item.Data.Title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "")}";
-                            }
-                            else if (item.Kind == "t4")
+                            switch (item.Kind)
                             {
-                                message.Attachments = new List<MattermostAttachment>
-                                {
-                                    new MattermostAttachment
+                                case "t3":
+                                    var content = item.Data.PostHint == "link" ? $"Linked Content: {item.Data.Url}" : item.Data.Selftext;
+
+                                    message.Attachments = new List<MattermostAttachment>
                                     {
-                                        AuthorName = $"/u/{item.Data.Author}",
-                                        AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
-                                        Title = item.Data.Subject,
-                                        TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
-                                        Text =
-                                            item.Data.Body.Replace("](/r/",
-                                                "](https://reddit.com/r/"), //expand /r/ markdown links
-                                        Pretext = feed.FeedPretext
-                                    }
-                                };
+                                        new MattermostAttachment
+                                        {
+                                            AuthorName = $"/u/{item.Data.Author}",
+                                            AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                            Title = item.Data.Title,
+                                            TitleLink = new Uri($"https://reddit.com{item.Data.Permalink}"),
+                                            Text = content,
+                                            Pretext = feed.FeedPretext
+                                        }
+                                    };
+                                    message.Text =
+                                        $"#{Regex.Replace(item.Data.Title.Replace(" ", "-"), "[^0-9a-zA-Z-]+", "")}";
+                                    break;
+                                case "t1":
+                                case "t4":
+
+                                    var title = item.Data.LinkTitle != null ? $"{item.Data.Subject} - {item.Data.LinkTitle}":item.Data.Subject;
+
+                                    message.Attachments = new List<MattermostAttachment>
+                                    {
+                                        new MattermostAttachment
+                                        {
+                                            AuthorName = $"/u/{item.Data.Author}",
+                                            AuthorLink = new Uri($"https://reddit.com/u/{item.Data.Author}"),
+                                            Title = title,
+                                            TitleLink = item.Data.Context != "" ?  new Uri($"https://reddit.com{item.Data.Context}") : null,
+                                            Text =
+                                                item.Data.Body.Replace("](/r/",
+                                                    "](https://reddit.com/r/"), //expand /r/ markdown links
+                                            Pretext = feed.FeedPretext
+                                        }
+                                    };
+                                    break;
                             }
 
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -95,6 +96,9 @@ namespace Matterfeed.NET
         [JsonProperty("title")]
         public string Title { get; set; }
 
+        [JsonProperty("link_title")]
+        public string LinkTitle { get; set; }
+
         [JsonProperty("url")]
         public string Url { get; set; }
 
@@ -107,13 +111,8 @@ namespace Matterfeed.NET
         [JsonProperty("body")]
         public string Body { get; set; }
 
-       
-
         [JsonProperty("body_html")]
         public string BodyHtml { get; set; }
-
-       
-
 
         [JsonProperty("dest")]
         public string Dest { get; set; }
