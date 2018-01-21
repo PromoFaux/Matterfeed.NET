@@ -33,7 +33,7 @@ namespace Matterfeed.NET
                         {
                             sbOut.Append($"\nERROR: Unable to get feed, exception: {e.Message}");
                             Console.WriteLine(sbOut.ToString());
-                            return;
+                            continue;
                         }
 
                         //only get items we have not already processed
