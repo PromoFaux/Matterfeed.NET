@@ -87,7 +87,7 @@ namespace Matterfeed.NET
                                             TitleLink = item.Data.Context != "" ?  new Uri($"https://reddit.com{item.Data.Context}") : null,
                                             Text =
                                                 item.Data.Body.Replace("](/r/",
-                                                    "](https://reddit.com/r/"), //expand /r/ markdown links
+                                                    "](https://reddit.com/r/"), //expand /r/ markdown links, does not correctly parse promoted links
                                             Pretext = feed.FeedPretext
                                         }
                                     };
