@@ -69,7 +69,7 @@ namespace Matterfeed.NET
                                                     AuthorName = t.CreatedBy.Name ?? "",
                                                     AuthorLink =
                                                         new Uri($"https://twitter.com/{t.CreatedBy.ScreenName}"),
-                                                    AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrl400x400 ?? "")
+                                                    AuthorIcon = new Uri(t.CreatedBy.ProfileImageUrlHttps ?? "")
                                                 }
                                             }
                                         };
